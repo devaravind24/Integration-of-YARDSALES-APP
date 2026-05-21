@@ -36,8 +36,6 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     _conditionController.dispose();
     super.dispose();
   }
-
-  // ── Image Picker ─────────────────────────────────────────────────────────────
   Future<void> _pickImage(ImageSource source) async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(
@@ -84,7 +82,6 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     );
   }
 
-  // ── Submit to Firestore ───────────────────────────────────────────────────────
   Future<void> _postListing() async {
     if (_titleController.text.trim().isEmpty) {
       _showSnack('Please enter a title for your listing.');

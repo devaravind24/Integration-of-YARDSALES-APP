@@ -27,7 +27,6 @@ class CustomDrawer extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── HEADER ──────────────────────────────────────
             IconButton(
               icon: const Icon(Icons.arrow_back_ios_new,
                   color: Color(0xFF2B5BA8)),
@@ -78,9 +77,6 @@ class CustomDrawer extends StatelessWidget {
             const SizedBox(height: 12),
             const Divider(height: 1),
 
-            // ── SCROLLABLE MENU ITEMS ──────────────────────
-            // Wrapping in Expanded + SingleChildScrollView guarantees
-            // no overflow on short screens — items scroll, CTA stays put.
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(vertical: 4),

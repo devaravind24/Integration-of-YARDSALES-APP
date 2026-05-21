@@ -20,9 +20,6 @@ class _DiscoveryScreenState extends State<DiscoveryScreen>
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final TextEditingController _searchController = TextEditingController();
   final AuthService _auth = AuthService();
-
-  /// Dynamic display name for the greeting — resolved from FirebaseAuth +
-  /// Firestore, falls back to the email prefix or "there".
   String _displayName = 'there';
 
   late final AnimationController _pulseCtrl;
@@ -67,7 +64,6 @@ class _DiscoveryScreenState extends State<DiscoveryScreen>
       body: SafeArea(
         child: Column(
           children: [
-            // ── Header bar ─────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
               child: Container(
@@ -104,7 +100,6 @@ class _DiscoveryScreenState extends State<DiscoveryScreen>
               ),
             ),
             const SizedBox(height: 16),
-            // ── Greeting (dynamic name) ─────────────────────────────
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(

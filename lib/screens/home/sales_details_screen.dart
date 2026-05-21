@@ -4,10 +4,6 @@ class SaleDetailsScreen extends StatelessWidget {
   final Map<String, String> sale;
 
   const SaleDetailsScreen({super.key, required this.sale});
-
-  /// Returns the image URL if the listing has a real one, otherwise null.
-  /// Empty strings, whitespace, and the literal string "null" all count as
-  /// "no image" so the placeholder never sneaks in.
   String? get _imageUrl {
     final raw = sale['imageUrl']?.trim();
     if (raw == null || raw.isEmpty || raw.toLowerCase() == 'null') return null;
@@ -23,7 +19,6 @@ class SaleDetailsScreen extends StatelessWidget {
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
-            // ── Header ───────────────────────────────────────────────
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
@@ -46,8 +41,6 @@ class SaleDetailsScreen extends StatelessWidget {
                 ),
               ),
             ),
-
-            // ── Hero image — ONLY shown if a real image exists ──────
             if (imageUrl != null)
               SliverToBoxAdapter(
                 child: Padding(
@@ -59,8 +52,6 @@ class SaleDetailsScreen extends StatelessWidget {
                       width: double.infinity,
                       height: 220,
                       fit: BoxFit.cover,
-                      // If the network image fails mid-load, hide the slot
-                      // entirely — never show an empty grey box.
                       errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                       loadingBuilder: (context, child, progress) {
                         if (progress == null) return child;
@@ -79,8 +70,6 @@ class SaleDetailsScreen extends StatelessWidget {
                   ),
                 ),
               ),
-
-            // ── Content ──────────────────────────────────────────────
             SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.fromLTRB(

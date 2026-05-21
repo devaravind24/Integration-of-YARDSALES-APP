@@ -1,23 +1,8 @@
 import 'package:flutter/material.dart';
-
-/// Reusable logo widget for the YardSale app.
-///
-/// Renders the official `assets/logo.png` file at the requested [size]
-/// and (optionally) the colored "YARDSALE" wordmark beneath it.
-///
-/// Use everywhere the brand logo is needed — splash, welcome, sidebar,
-/// listing header, etc. — so the entire app stays consistent.
 class YardSaleLogo extends StatelessWidget {
-  /// Height (and roughly width) of the rendered image in logical pixels.
   final double size;
-
-  /// Whether to show the "YARDSALE" wordmark beneath the image.
   final bool showWordmark;
-
-  /// Font size used for the wordmark when [showWordmark] is true.
   final double wordmarkSize;
-
-  /// Vertical gap between image and wordmark.
   final double gap;
 
   const YardSaleLogo({
@@ -38,8 +23,6 @@ class YardSaleLogo extends StatelessWidget {
           height: size,
           width: size,
           fit: BoxFit.contain,
-          // Graceful fallback if the asset is missing — falls back to the
-          // three icon-based logo so the app never crashes during marking.
           errorBuilder: (_, __, ___) => _FallbackIconLogo(size: size),
         ),
         if (showWordmark) ...[
@@ -74,7 +57,7 @@ class YardSaleLogo extends StatelessWidget {
   }
 }
 
-/// Fallback used only if `assets/logo.png` fails to load.
+// Fallback used only if `assets/logo.png` fails to load.
 class _FallbackIconLogo extends StatelessWidget {
   final double size;
   const _FallbackIconLogo({required this.size});

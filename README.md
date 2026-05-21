@@ -1,17 +1,13 @@
-# csen268_final_project
+# Integration of YARD SALES APP
 
-A new Flutter project.
+The Integration of YARD SALES APP is a collaborative mobile application project developed by our team as part of the CSEN268 Final Project. This application is designed to help users discover, create, organize, and manage local yard sales through an intuitive and user-friendly Flutter interface.
 
-## Getting Started
+Our team collaborated on the integration of core application features including user authentication, listing management, location services, scheduling functionality, and Firebase backend connectivity. The project emphasizes responsive design, real-time user interaction, and cross-platform mobile development.
 
-This project is a starting point for a Flutter application.
+## Team Collaboration
 
-A few resources to get you started if this is your first Flutter project:
+This project was collaboratively developed by:
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- Aravind Nanneboina
+- Rakshitha Srinivasa
+- Stephanie Grasso

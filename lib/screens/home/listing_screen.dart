@@ -15,8 +15,6 @@ class ListingScreen extends StatefulWidget {
 class _ListingScreenState extends State<ListingScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-
-  /// Fallback static data shown while Firestore loads or if empty
   static const List<Map<String, dynamic>> _fallback = [
     {
       'title': 'Free Giveaway',

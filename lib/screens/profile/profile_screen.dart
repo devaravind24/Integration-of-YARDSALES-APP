@@ -25,7 +25,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _loadProfile();
-    // Refresh whenever the signed-in user changes (e.g. after a fresh login)
     _authSub = FirebaseAuth.instance.authStateChanges().listen((_) {
       if (mounted) _loadProfile();
     });
@@ -39,8 +38,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadProfile() async {
     final user = FirebaseAuth.instance.currentUser;
-
-    // Optimistic update from in-memory FirebaseAuth user.
     if (user != null) {
       _email = user.email ?? '';
       if ((user.displayName ?? '').trim().isNotEmpty) {
@@ -49,7 +46,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return;
       }
     }
-    // Fall back to Firestore /users/{uid} or email prefix.
     final resolved = await _auth.resolveDisplayName();
     if (!mounted) return;
     setState(() {
@@ -66,7 +62,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              // ── Header ───────────────────────────────────────
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                 child: Row(
@@ -100,7 +95,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              // ── Avatar ───────────────────────────────────────
               Stack(
                 alignment: Alignment.bottomRight,
                 children: [
@@ -134,7 +128,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
               const SizedBox(height: 12),
-              // ── Dynamic name + email ─────────────────────────
               Text(
                 _displayName,
                 style: const TextStyle(
@@ -152,7 +145,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const Icon(Icons.edit_outlined,
                   color: Color(0xFF2B5BA8), size: 22),
               const SizedBox(height: 20),
-              // ── Form Type section ─────────────────────────────
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Column(

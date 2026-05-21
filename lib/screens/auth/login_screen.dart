@@ -65,7 +65,6 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             children: [
               const SizedBox(height: 30),
-              // ── Real logo from Figma (assets/logo.png) ──────────────
               const YardSaleLogo(size: 110, wordmarkSize: 22),
               const SizedBox(height: 28),
               const Text(
@@ -145,7 +144,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 40),
-              // ── Real branded social icons (UI only) ───────────────
               const _SocialIconRow(),
               const SizedBox(height: 28),
               Row(
@@ -186,10 +184,6 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  Social icons — real brand glyphs from font_awesome_flutter, brand colors,
-//  consistent sizing, subtle shadows, professional polish.
-// ─────────────────────────────────────────────────────────────────────────────
 class _SocialIconRow extends StatelessWidget {
   const _SocialIconRow();
 
@@ -198,7 +192,6 @@ class _SocialIconRow extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        // Google — white circle with multi-color G border outline feel
         _BrandCircle(
           background: Colors.white,
           border: Colors.grey.shade300,
@@ -209,7 +202,6 @@ class _SocialIconRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 16),
-        // Facebook — Facebook blue circle, white "f"
         _BrandCircle(
           background: const Color(0xFF1877F2),
           border: const Color(0xFF1877F2),
@@ -220,7 +212,6 @@ class _SocialIconRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 16),
-        // X (formerly Twitter) — black circle, white X
         _BrandCircle(
           background: Colors.black,
           border: Colors.black,
@@ -231,7 +222,6 @@ class _SocialIconRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 16),
-        // Instagram — true brand gradient + white camera glyph
         const _InstagramBrand(),
       ],
     );
