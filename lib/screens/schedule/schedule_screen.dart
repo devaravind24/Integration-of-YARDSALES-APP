@@ -1,6 +1,7 @@
 import 'package:csen268_final_project/routes/app_routes.dart';
 import 'package:csen268_final_project/services/auth_service.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class ScheduleScreen extends StatefulWidget {
   const ScheduleScreen({super.key});
@@ -17,37 +18,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   Map<String, List<Map<String, dynamic>>> _grouped = {};
   bool _isLoading = true;
 
-  final _events = [
-    {
-      'day': 'Fri',
-      'date': '10',
-      'title': 'Estate Sale',
-      'subtitle': 'Fri. Apr 10 · 12:00pm · San Jose',
-      'favorited': false,
-    },
-    {
-      'day': 'Sat',
-      'date': '11',
-      'title': 'Neighborhood Garage Sale',
-      'subtitle': 'Sat. Apr 11 · 2:00pm · San Jose',
-      'favorited': false,
-    },
-    {
-      'day': 'Sat',
-      'date': '11',
-      'title': 'Yard Sale',
-      'subtitle': 'Sat. Apr 11 · 3:30pm · San Jose',
-      'favorited': false,
-    },
-    {
-      'day': 'Sun',
-      'date': '12',
-      'title': 'Kitchen and Bath Yard Sale',
-      'subtitle': 'Sun. Apr 12 · 10:30am · San Jose',
-      'favorited': false,
-    },
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -59,32 +29,89 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       _isLoading = true;
     });
     _scheduledFavorites = await _auth.fetchUserFavorites();
-    final Map<String, List<Map<String, dynamic>>> grouped_fav = _seperateGroups();
+    _applyFilteringAndGrouping();
+  }
+
+  void _applyFilteringAndGrouping() {
+    final filteredList = _filterEventsBySelection();
+    final Map<String, List<Map<String, dynamic>>> groupedFav = _seperateGroups(filteredList);
+    
     setState(() {
-      _grouped = grouped_fav;
+      _grouped = groupedFav;
       _isLoading = false;
     });
   }
 
-  Map<String, List<Map<String, dynamic>>> _seperateGroups() {
-    if(_scheduledFavorites.isEmpty) return {};
+  List<Map<String, dynamic>> _filterEventsBySelection() {
+    if (_selectedFilter == 0) return _scheduledFavorites;
+
+    final DateTime now = DateTime.now();
+    final String todayString = DateFormat('E, MMM d').format(now);
+    final String tomorrowString = DateFormat('E, MMM d').format(now.add(const Duration(days: 1)));
+
+    return _scheduledFavorites.where((event) {
+      final String? eventDate = event['date']?.toString();
+      if (eventDate == null) return false;
+
+      switch (_selectedFilter) {
+        case 1:
+          return eventDate.trim().toLowerCase() == todayString.trim().toLowerCase();
+        case 2:
+          return eventDate.trim().toLowerCase() == tomorrowString.trim().toLowerCase();
+        case 3:
+          final String weekday = eventDate.split(',').first.trim().toLowerCase();
+          return weekday == 'saturday' || weekday == 'sunday' || weekday == 'sat' || weekday == 'sun';
+        default:
+          return true;
+      }
+    }).toList();
+  }
+
+  Map<String, List<Map<String, dynamic>>> _seperateGroups(List<Map<String, dynamic>> listToGroup) {
+    if (listToGroup.isEmpty) return {};
+    
+    // 1. Sort the raw list chronologically before grouping them together
+    final List<Map<String, dynamic>> sortedList = List.from(listToGroup);
+    sortedList.sort((a, b) {
+      final String? dateAStr = a['date']?.toString();
+      final String? dateBStr = b['date']?.toString();
+      
+      if (dateAStr == null) return 1;
+      if (dateBStr == null) return -1;
+      
+      try {
+        // Expected incoming format example: "Saturday, Apr 4"
+        // We look up the current year dynamically to ensure parsing succeeds smoothly
+        final int currentYear = DateTime.now().year;
+        final DateFormat format = DateFormat('E, MMM d yyyy');
+        
+        final DateTime dateA = format.parse('$dateAStr $currentYear');
+        final DateTime dateB = format.parse('$dateBStr $currentYear');
+        
+        return dateA.compareTo(dateB);
+      } catch (e) {
+        debugPrint('Error parsing date comparison tokens: $e');
+        return 0; // Fallback to safe keeping order if formatting fails mismatch expectations
+      }
+    });
+
+    // 2. Use a LinkedHashMap (default variant implementation of {}) to preserve this sorted order
     final Map<String, List<Map<String, dynamic>>> grouped = {};
 
-    for (final event in _scheduledFavorites) {
-      event['subtitle'] = "${event['date']??''} · ${event['starttime']??''}";
-      final List<String> splitDate = event['date']?.toString().split(',').toList() ?? ['Sun','Dec 31'];
+    for (final event in sortedList) {
+      event['subtitle'] = "${event['date'] ?? ''} · ${event['starttime'] ?? ''}";
+      final List<String> splitDate = event['date']?.toString().split(',').toList() ?? ['Sun', 'Dec 31'];
       if (splitDate.length < 2) continue;
-      final key ='${splitDate[0]}-${splitDate[1]}';
+      final key = '${splitDate[0]}-${splitDate[1]}';
       grouped.putIfAbsent(key, () => []);
       grouped[key]!.add(event);
     }
-    print(grouped);
     return grouped;
   }
 
   @override
   Widget build(BuildContext context) {
-    
+    // Preserves sorted entries mapping order configurations dynamically
     final Map<String, List<Map<String, dynamic>>> grouped = _grouped;
 
     return Scaffold(
@@ -129,10 +156,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               ),
             ),
             const SizedBox(height: 10),
-            // Upcoming Schedule button
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
               decoration: BoxDecoration(
                 color: const Color(0xFF2B5BA8),
                 borderRadius: BorderRadius.circular(30),
@@ -158,20 +183,21 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 itemBuilder: (context, i) {
                   final selected = _selectedFilter == i;
                   return GestureDetector(
-                    onTap: () => setState(() => _selectedFilter = i),
+                    onTap: () {
+                      setState(() {
+                        _selectedFilter = i;
+                      });
+                      _applyFilteringAndGrouping();
+                    },
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
-                        color: selected
-                            ? const Color(0xFFE8843A)
-                            : Colors.white,
+                        color: selected ? const Color(0xFFE8843A) : Colors.white,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: selected
-                              ? const Color(0xFFE8843A)
-                              : Colors.grey.shade300,
+                          color: selected ? const Color(0xFFE8843A) : Colors.grey.shade300,
                         ),
                       ),
                       child: Text(
@@ -188,91 +214,98 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            // Events list
+            // Chronologically ordered timeline list display loop
             Expanded(
-              child: _isLoading 
-              ? const Center(
-                  child: CircularProgressIndicator(color: Color(0xFFE8843A)),
-                )
-              :
-              ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: grouped.entries.map((entry) {
-                  final parts = entry.key.split('-');
-                  final dayName = parts[0];
-                  final dateNum = parts[1].split(" ").last ?? '1';
-                  final events = entry.value;
+              child: _isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(color: Color(0xFFE8843A)),
+                    )
+                  : grouped.isEmpty
+                      ? const Center(
+                          child: Text(
+                            'No scheduled events found for this filter.',
+                            style: TextStyle(color: Colors.black45),
+                          ),
+                        )
+                      : ListView(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          children: grouped.entries.map((entry) {
+                            final parts = entry.key.split('-');
+                            final dayName = parts[0];
+                            final dateNum = parts[1].split(" ").last;
+                            final events = entry.value;
 
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Date box
-                          Container(
-                            width: 64,
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                  color: const Color(0xFF2B5BA8), width: 2),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Column(
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Container(
-                                  width: double.infinity,
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 4),
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xFF2B5BA8),
-                                    borderRadius: BorderRadius.only(
-                                      topLeft: Radius.circular(8),
-                                      topRight: Radius.circular(8),
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Date box
+                                    Container(
+                                      width: 64,
+                                      decoration: BoxDecoration(
+                                        border: Border.all(
+                                            color: const Color(0xFF2B5BA8), width: 2),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Column(
+                                        children: [
+                                          Container(
+                                            width: double.infinity,
+                                            padding: const EdgeInsets.symmetric(
+                                                vertical: 4),
+                                            decoration: const BoxDecoration(
+                                              color: Color(0xFF2B5BA8),
+                                              borderRadius: BorderRadius.only(
+                                                topLeft: Radius.circular(8),
+                                                topRight: Radius.circular(8),
+                                              ),
+                                            ),
+                                            alignment: Alignment.center,
+                                            child: Text(
+                                              dayName,
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                          ),
+                                          Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                                vertical: 6),
+                                            child: Text(
+                                              dateNum,
+                                              style: const TextStyle(
+                                                color: Color(0xFF2B5BA8),
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 20,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: Text(
-                                    dayName,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
+                                    const SizedBox(width: 12),
+                                    // Event cards
+                                    Expanded(
+                                      child: Column(
+                                        children: events
+                                            .map((event) =>
+                                                _EventCard(event: event))
+                                            .toList(),
+                                      ),
                                     ),
-                                  ),
+                                  ],
                                 ),
-                                Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 6),
-                                  child: Text(
-                                    dateNum,
-                                    style: const TextStyle(
-                                      color: Color(0xFF2B5BA8),
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 20,
-                                    ),
-                                  ),
-                                ),
+                                const SizedBox(height: 8),
+                                const Divider(color: Color(0xFFD0DDEE)),
+                                const SizedBox(height: 8),
                               ],
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          // Event cards
-                          Expanded(
-                            child: Column(
-                              children: events
-                                  .map((event) => _EventCard(event: event)) // HERE
-                                  .toList(),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      const Divider(color: Color(0xFFD0DDEE)),
-                      const SizedBox(height: 8),
-                    ],
-                  );
-                }).toList(),
-              ),
+                            );
+                          }).toList(),
+                        ),
             ),
           ],
         ),
@@ -290,8 +323,6 @@ class _EventCard extends StatefulWidget {
 }
 
 class _EventCardState extends State<_EventCard> {
-  // bool _favorited = false;
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -324,10 +355,10 @@ class _EventCardState extends State<_EventCard> {
                 const SizedBox(height: 4),
                 GestureDetector(
                   onTap: () => Navigator.pushNamed(
-                          context,
-                          AppRoutes.details,
-                          arguments: widget.event,
-                        ),
+                    context,
+                    AppRoutes.details,
+                    arguments: widget.event,
+                  ),
                   child: Row(
                     children: [
                       const Text(
@@ -346,16 +377,6 @@ class _EventCardState extends State<_EventCard> {
               ],
             ),
           ),
-          // IconButton(
-          //   icon: Icon(
-          //     _favorited ? Icons.favorite : Icons.favorite_border,
-          //     color: _favorited ? Colors.red : Colors.grey,
-          //     size: 20,
-          //   ),
-          //   onPressed: () => setState(() => _favorited = !_favorited),
-          //   padding: EdgeInsets.zero,
-          //   constraints: const BoxConstraints(),
-          // ),
         ],
       ),
     );
