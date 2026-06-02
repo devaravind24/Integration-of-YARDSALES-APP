@@ -43,9 +43,13 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"/>
         </provider>
+       <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyAEj3Sf8RO8pYpUO0fAb2co8hXAW2zG0Co"/> 
         <meta-data
             android:name="flutterEmbedding"
             android:value="2"/>
+
     </application>
     <queries>
         <intent>
