@@ -257,11 +257,11 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  _IconCircle(
-                    icon: Icons.tune,
-                    onTap: () => FilterModal.show(context),
-                  ),
+                  // const SizedBox(width: 10),
+                  // _IconCircle(
+                  //   icon: Icons.tune,
+                  //   onTap: () => FilterModal.show(context),
+                  // ),
                   const SizedBox(width: 8),
                   _IconCircle(
                     icon: Icons.bookmark_border,

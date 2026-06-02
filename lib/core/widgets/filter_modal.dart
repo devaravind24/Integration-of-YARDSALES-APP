@@ -1,25 +1,52 @@
 import 'package:flutter/material.dart';
+import 'filter_data.dart';
 
 class FilterModal extends StatefulWidget {
-  const FilterModal({super.key});
-  static void show(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => const FilterModal(),
-    );
-  }
-
+  final FilterData? initialFilter;
+  const FilterModal({
+    super.key,
+    this.initialFilter,
+  });
+  static Future<FilterData?> show(
+  BuildContext context,
+  FilterData? currentFilter,
+) {
+  return showModalBottomSheet<FilterData>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => FilterModal(
+      initialFilter: currentFilter,
+    ),
+  );
+}
   @override
   State<FilterModal> createState() => _FilterModalState();
 }
 
 class _FilterModalState extends State<FilterModal> {
-  final List<String> _categories = ['Furniture', 'Electronics', 'Toys', 'Books'];
-  final List<String> _selectedCategories = ['Furniture', 'Electronics', 'Toys', 'Books'];
+  final List<String> _categories = [
+    'electronics',
+    'furniture',
+    'toys',
+    'books',
+  ];
 
-  final List<String> _sortOptions = ['Popularity', 'Nearest', 'Newest', 'High Price', 'Low Price', 'Review'];
+   final List<String> _selectedCategories = [
+    'electronics',
+    'furniture',
+    'toys',
+    'books',
+  ];
+
+  final List<String> _sortOptions = [
+    'Popularity',
+    'Nearest',
+    'Newest',
+    'High Price',
+    'Low Price',
+    'Review'
+  ];
   String _selectedSort = 'Popularity';
 
   final List<String> _distances = ['1 mi', '5 mi', '10 mi', '20 mi'];
@@ -27,6 +54,26 @@ class _FilterModalState extends State<FilterModal> {
 
   final _minController = TextEditingController();
   final _maxController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+
+    if (widget.initialFilter != null) {
+      _selectedCategories
+        ..clear()
+        ..addAll(widget.initialFilter!.categories);
+
+      _selectedSort = widget.initialFilter!.sortBy;
+      _selectedDistance = widget.initialFilter!.distance;
+
+      _minController.text =
+          widget.initialFilter!.minPrice?.toString() ?? '';
+
+      _maxController.text =
+          widget.initialFilter!.maxPrice?.toString() ?? '';
+    }
+  }
 
   @override
   void dispose() {
@@ -103,7 +150,8 @@ class _FilterModalState extends State<FilterModal> {
                                 const Spacer(),
                                 GestureDetector(
                                   onTap: () => Navigator.pop(context),
-                                  child: const Icon(Icons.close, color: Colors.black54, size: 22),
+                                  child: const Icon(Icons.close,
+                                      color: Colors.black54, size: 22),
                                 ),
                               ],
                             ),
@@ -114,7 +162,8 @@ class _FilterModalState extends State<FilterModal> {
                               spacing: 8,
                               runSpacing: 8,
                               children: _categories.map((cat) {
-                                final selected = _selectedCategories.contains(cat);
+                                final selected =
+                                    _selectedCategories.contains(cat);
                                 return _FilterChip(
                                   label: cat,
                                   selected: selected,
@@ -131,7 +180,6 @@ class _FilterModalState extends State<FilterModal> {
                             ),
                             const SizedBox(height: 22),
 
-                          
                             const _SectionLabel('Sort By'),
                             const SizedBox(height: 10),
                             Wrap(
@@ -143,13 +191,13 @@ class _FilterModalState extends State<FilterModal> {
                                   label: opt,
                                   selected: selected,
                                   filled: selected,
-                                  onTap: () => setState(() => _selectedSort = opt),
+                                  onTap: () =>
+                                      setState(() => _selectedSort = opt),
                                 );
                               }).toList(),
                             ),
                             const SizedBox(height: 22),
 
-                            
                             const _SectionLabel('Distance'),
                             const SizedBox(height: 10),
                             Wrap(
@@ -160,14 +208,15 @@ class _FilterModalState extends State<FilterModal> {
                                 return _FilterChip(
                                   label: d,
                                   selected: selected,
-                                  filled: false,        // distance chips are outline-only
-                                  onTap: () => setState(() => _selectedDistance = d),
+                                  filled:
+                                      false, // distance chips are outline-only
+                                  onTap: () =>
+                                      setState(() => _selectedDistance = d),
                                 );
                               }).toList(),
                             ),
                             const SizedBox(height: 22),
 
-                           
                             const _SectionLabel('Price Range'),
                             const SizedBox(height: 10),
                             Row(
@@ -192,12 +241,22 @@ class _FilterModalState extends State<FilterModal> {
                       ),
                       const SizedBox(height: 16),
 
-                     
                       SizedBox(
                         width: double.infinity,
                         height: 52,
                         child: ElevatedButton(
-                          onPressed: () => Navigator.pop(context),
+                          onPressed: () {
+                            Navigator.pop(
+                              context,
+                              FilterData(
+                                categories: List.from(_selectedCategories),
+                                sortBy: _selectedSort,
+                                distance: _selectedDistance,
+                                minPrice: double.tryParse(_minController.text),
+                                maxPrice: double.tryParse(_maxController.text),
+                              ),
+                            );
+                          },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFE8843A),
                             shape: RoundedRectangleBorder(
@@ -217,14 +276,14 @@ class _FilterModalState extends State<FilterModal> {
                       ),
                       const SizedBox(height: 10),
 
-                    
                       SizedBox(
                         width: double.infinity,
                         height: 52,
                         child: ElevatedButton(
                           onPressed: _reset,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFE8843A).withOpacity(0.75),
+                            backgroundColor:
+                                const Color(0xFFE8843A).withOpacity(0.75),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -252,7 +311,6 @@ class _FilterModalState extends State<FilterModal> {
   }
 }
 
-
 class _SectionLabel extends StatelessWidget {
   final String text;
   const _SectionLabel(this.text);
@@ -273,7 +331,7 @@ class _SectionLabel extends StatelessWidget {
 class _FilterChip extends StatelessWidget {
   final String label;
   final bool selected;
-  final bool filled;  
+  final bool filled;
   final VoidCallback onTap;
 
   const _FilterChip({
@@ -295,9 +353,7 @@ class _FilterChip extends StatelessWidget {
           color: isActive ? const Color(0xFFE8843A) : Colors.white,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: selected
-                ? const Color(0xFFE8843A)
-                : Colors.grey.shade300,
+            color: selected ? const Color(0xFFE8843A) : Colors.grey.shade300,
             width: 1.5,
           ),
         ),
@@ -335,8 +391,7 @@ class _PriceField extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(
-              color: Color(0xFFE8843A), width: 1.5),
+          borderSide: const BorderSide(color: Color(0xFFE8843A), width: 1.5),
         ),
       ),
     );
