@@ -1,3 +1,5 @@
+import 'package:csen268_final_project/routes/app_routes.dart';
+import 'package:csen268_final_project/services/auth_service.dart';
 import 'package:flutter/material.dart';
 
 class ScheduleScreen extends StatefulWidget {
@@ -10,6 +12,10 @@ class ScheduleScreen extends StatefulWidget {
 class _ScheduleScreenState extends State<ScheduleScreen> {
   int _selectedFilter = 0;
   final _filters = ['All', 'Today', 'Tomorrow', 'Weekend Only'];
+  final AuthService _auth = AuthService();
+  List<Map<String, dynamic>> _scheduledFavorites = [];
+  Map<String, List<Map<String, dynamic>>> _grouped = {};
+  bool _isLoading = true;
 
   final _events = [
     {
@@ -43,14 +49,43 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   ];
 
   @override
-  Widget build(BuildContext context) {
-    // Group events by date
+  void initState() {
+    super.initState();
+    _setFavorites();
+  }
+
+  void _setFavorites() async {
+    setState(() {
+      _isLoading = true;
+    });
+    _scheduledFavorites = await _auth.fetchUserFavorites();
+    final Map<String, List<Map<String, dynamic>>> grouped_fav = _seperateGroups();
+    setState(() {
+      _grouped = grouped_fav;
+      _isLoading = false;
+    });
+  }
+
+  Map<String, List<Map<String, dynamic>>> _seperateGroups() {
+    if(_scheduledFavorites.isEmpty) return {};
     final Map<String, List<Map<String, dynamic>>> grouped = {};
-    for (final event in _events) {
-      final key = '${event['day']}-${event['date']}';
+
+    for (final event in _scheduledFavorites) {
+      event['subtitle'] = "${event['date']??''} · ${event['starttime']??''}";
+      final List<String> splitDate = event['date']?.toString().split(',').toList() ?? ['Sun','Dec 31'];
+      if (splitDate.length < 2) continue;
+      final key ='${splitDate[0]}-${splitDate[1]}';
       grouped.putIfAbsent(key, () => []);
       grouped[key]!.add(event);
     }
+    print(grouped);
+    return grouped;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    
+    final Map<String, List<Map<String, dynamic>>> grouped = _grouped;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -155,12 +190,17 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             const SizedBox(height: 16),
             // Events list
             Expanded(
-              child: ListView(
+              child: _isLoading 
+              ? const Center(
+                  child: CircularProgressIndicator(color: Color(0xFFE8843A)),
+                )
+              :
+              ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 children: grouped.entries.map((entry) {
                   final parts = entry.key.split('-');
                   final dayName = parts[0];
-                  final dateNum = parts[1];
+                  final dateNum = parts[1].split(" ").last ?? '1';
                   final events = entry.value;
 
                   return Column(
@@ -220,7 +260,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                           Expanded(
                             child: Column(
                               children: events
-                                  .map((event) => _EventCard(event: event))
+                                  .map((event) => _EventCard(event: event)) // HERE
                                   .toList(),
                             ),
                           ),
@@ -250,7 +290,7 @@ class _EventCard extends StatefulWidget {
 }
 
 class _EventCardState extends State<_EventCard> {
-  bool _favorited = false;
+  // bool _favorited = false;
 
   @override
   Widget build(BuildContext context) {
@@ -282,33 +322,40 @@ class _EventCardState extends State<_EventCard> {
                       color: Color(0xFF4A6B9A), fontSize: 12),
                 ),
                 const SizedBox(height: 4),
-                Row(
-                  children: [
-                    const Text(
-                      'details ',
-                      style: TextStyle(
-                        color: Color(0xFF1B3A6B),
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
+                GestureDetector(
+                  onTap: () => Navigator.pushNamed(
+                          context,
+                          AppRoutes.details,
+                          arguments: widget.event,
+                        ),
+                  child: Row(
+                    children: [
+                      const Text(
+                        'details ',
+                        style: TextStyle(
+                          color: Color(0xFF1B3A6B),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
                       ),
-                    ),
-                    const Icon(Icons.arrow_forward,
-                        size: 13, color: Color(0xFF1B3A6B)),
-                  ],
+                      const Icon(Icons.arrow_forward,
+                          size: 13, color: Color(0xFF1B3A6B)),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-          IconButton(
-            icon: Icon(
-              _favorited ? Icons.favorite : Icons.favorite_border,
-              color: _favorited ? Colors.red : Colors.grey,
-              size: 20,
-            ),
-            onPressed: () => setState(() => _favorited = !_favorited),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
+          // IconButton(
+          //   icon: Icon(
+          //     _favorited ? Icons.favorite : Icons.favorite_border,
+          //     color: _favorited ? Colors.red : Colors.grey,
+          //     size: 20,
+          //   ),
+          //   onPressed: () => setState(() => _favorited = !_favorited),
+          //   padding: EdgeInsets.zero,
+          //   constraints: const BoxConstraints(),
+          // ),
         ],
       ),
     );

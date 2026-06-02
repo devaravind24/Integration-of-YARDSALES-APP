@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class SaleDetailsScreen extends StatelessWidget {
@@ -10,10 +11,29 @@ class SaleDetailsScreen extends StatelessWidget {
     return raw;
   }
 
+  Future<String> _fetchSellerUsername(String? sellerId) async {
+    if (sellerId == null || sellerId.isEmpty) return 'Local Seller';
+    
+    try {
+      print(sellerId);
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(sellerId)
+          .get();
+          
+      if (doc.exists && doc.data() != null) {
+        // Adjust 'username' to match the exact field name in your Firestore document
+        return doc.data()?['displayName'] ?? 'Local Seller';
+      }
+    } catch (e) {
+      debugPrint('Error fetching seller username: $e');
+    }
+    return 'Local Seller'; // Fallback if document doesn't exist or fetch fails
+  }
+
   @override
   Widget build(BuildContext context) {
     final imageUrl = _imageUrl;
-
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -132,7 +152,7 @@ class SaleDetailsScreen extends StatelessWidget {
                     ),
                     const Divider(height: 32, color: Color(0xFFE5E5EA)),
                     const Text(
-                      'Seller Info',
+                      'Seller Infos',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -140,13 +160,28 @@ class SaleDetailsScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      'Posted by Local Seller\nUpdated 2 hours ago.',
-                      style: TextStyle(
-                        color: Colors.black87,
-                        fontSize: 14,
-                        height: 1.6,
-                      ),
+                    // const Text(
+                    //   'Posted by Local Seller\nUpdated 2 hours ago.',
+                    //   style: TextStyle(
+                    //     color: Colors.black87,
+                    //     fontSize: 14,
+                    //     height: 1.6,
+                    //   ),
+                    // ),
+                    FutureBuilder<String>(
+                      future: _fetchSellerUsername(sale['sellerId']),
+                      builder: (context, snapshot) {
+                        final username = snapshot.data ?? 'Loading...';
+                        
+                        return Text(
+                          'Posted by $username\n 2 hours ago.',
+                          style: TextStyle(
+                            color: snapshot.hasData ? Colors.black87 : Colors.black45,
+                            fontSize: 14,
+                            height: 1.6,
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),

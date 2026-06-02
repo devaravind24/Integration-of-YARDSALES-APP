@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/widgets.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -72,6 +73,44 @@ class AuthService {
     if (email.contains('@')) return email.split('@').first;
     return 'there';
   }
+
+  Future<List<Map<String, dynamic>>> fetchUserFavorites() async {
+  final uid = _auth.currentUser?.uid;
+  if (uid == null) return [];
+
+  try {
+    final userSnap = await _db.collection('users').doc(uid).get();
+    if (!userSnap.exists) return [];
+
+    final userData = userSnap.data();
+    if (userData == null || !userData.containsKey('favorites')) return [];
+
+    final List<dynamic> rawFavorites = userData['favorites'] ?? [];
+    if (rawFavorites.isEmpty) return [];
+
+    final List<String> favoriteIds = rawFavorites
+        .map((id) => id.toString())
+        .where((id) => id.isNotEmpty)
+        .take(30) // Firestore whereIn limit protection
+        .toList();
+
+    final salesSnap = await _db
+        .collection('sales')
+        .where(FieldPath.documentId, whereIn: favoriteIds)
+        .get();
+
+    return salesSnap.docs.map((doc) {
+      final data = doc.data();
+      data['id'] = doc.id; // Injecting document ID for UI/Hero animation keys
+      return data;
+    }).toList();
+
+  } catch (e) {
+    debugPrint('Error fetching favorite sales profiles: $e');
+    return [];
+  }
+}
+
   Future<void> signOut() => _auth.signOut();
 
   String _friendly(String code) {

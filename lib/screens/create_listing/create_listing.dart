@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart';
 
 class CreateListingScreen extends StatefulWidget {
   const CreateListingScreen({super.key});
@@ -22,6 +23,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
   final _conditionController   = TextEditingController();
 
   File? _pickedImage;
+  TimeOfDay? _startTime;
   bool _isSubmitting = false;
 
   @override
@@ -45,6 +47,65 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     );
     if (picked != null) {
       setState(() => _pickedImage = File(picked.path));
+    }
+  }
+
+  // Helper method to present the Material Time Picker UI dialog
+  Future<void> _selectTime(BuildContext context) async {
+    print(context);
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: _startTime ?? TimeOfDay.now(),
+      builder: (context, child) {
+        // Keeps theme colors aligned with your primary blue branding accents
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF2B5BA8),
+              onPrimary: Colors.white,
+              onSurface: Color(0xFF1A1A2E),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null && mounted) {
+      // Formats TimeOfDay into a standardized readable structure (e.g., "1:30 PM")
+      setState(() {
+        _startTime = picked;
+      });
+      final formattedTime = picked.format(context);
+      _timeController.text = formattedTime;
+    }
+  }
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(), // Prevents selecting past dates
+      lastDate: DateTime.now().add(const Duration(days: 365)), // Up to 1 year out
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF2B5BA8), // Header and selection accent
+              onPrimary: Colors.white,
+              onSurface: Color(0xFF1A1A2E),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null && mounted) {
+      // Formats date to: "Eeee, MMM d" -> (e.g., "Tuesday, Jun 2")
+      // Change to 'Eeee, MMMM d, yyyy' if you want full month name and year included.
+      final String formattedDate = DateFormat('E, MMM d').format(picked);
+      _dateController.text = formattedDate;
     }
   }
 
@@ -95,6 +156,8 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
         'description': _descriptionController.text.trim(),
         'tags':        _tagsController.text.trim(),
         'datetime':    '${_dateController.text.trim()} ${_timeController.text.trim()}'.trim(),
+        'date':        _dateController.text.trim(),
+        'starttime':   _timeController.text.trim(),
         'address':     _locationController.text.trim(),
         'price':       _priceController.text.trim(),
         'condition':   _conditionController.text.trim(),
@@ -191,11 +254,28 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                     const SizedBox(height: 18),
                     Row(
                       children: [
-                        Expanded(child: _BlueBorderField(hint: 'Time',    suffixIcon: Icons.hourglass_empty_outlined,   controller: _timeController)),
+                        // TIME SELECTION - Tap targets interactive picker dialog
+                        Expanded(
+                          child: _BlueBorderField(
+                            hint: 'Time',
+                            suffixIcon: Icons.access_time_outlined,
+                            controller: _timeController,
+                            readOnly: true,
+                            onTap: () => _selectTime(context),
+                          ),
+                        ),
                         const SizedBox(width: 8),
-                        Expanded(child: _BlueBorderField(hint: 'Date',    suffixIcon: Icons.calendar_month_outlined,    controller: _dateController)),
+                        Expanded(
+                          child: _BlueBorderField(
+                            hint: 'Date',
+                            suffixIcon: Icons.calendar_month_outlined,
+                            controller: _dateController,
+                            readOnly: true,
+                            onTap: () => _selectDate(context),
+                          ),
+                        ),
                         const SizedBox(width: 8),
-                        Expanded(child: _BlueBorderField(hint: '\$ Price',                                              controller: _priceController, keyboardType: TextInputType.number)),
+                        Expanded(child: _BlueBorderField(hint: '\$ Price',                                             controller: _priceController, keyboardType: TextInputType.number)),
                       ],
                     ),
                     const SizedBox(height: 14),
@@ -318,13 +398,17 @@ class _BlueBorderField extends StatelessWidget {
   final int maxLines;
   final IconData? suffixIcon;
   final TextInputType keyboardType;
+  final bool readOnly;         // Added to configure interaction blocks
+  final VoidCallback? onTap;
 
   const _BlueBorderField({
     this.hint,
     required this.controller,
     this.maxLines = 1,
     this.suffixIcon,
-    this.keyboardType = TextInputType.text,
+    this.keyboardType = TextInputType.text, 
+    this.readOnly = false, 
+    this.onTap,
   });
 
   @override
@@ -333,6 +417,8 @@ class _BlueBorderField extends StatelessWidget {
       controller: controller,
       maxLines: maxLines,
       keyboardType: keyboardType,
+      readOnly: readOnly,
+      onTap: onTap,
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: const TextStyle(color: Colors.black38, fontSize: 13),
