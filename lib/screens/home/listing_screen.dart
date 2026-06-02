@@ -1,5 +1,5 @@
 import 'dart:async';
-
+import '../../core/widgets/filter_data.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -22,7 +22,6 @@ class _ListingScreenState extends State<ListingScreen> {
   String? _currentUserId = FirebaseAuth.instance.currentUser?.uid;
   Set<String> _favoriteIds = {};
   StreamSubscription<User?>? _authSub;
-
 
   List<Map<String, dynamic>> _allSales = [];
   bool _isLoading = true;
@@ -59,13 +58,17 @@ class _ListingScreenState extends State<ListingScreen> {
       'distance': '5.3 miles',
     },
   ];
-
+  FilterData? _activeFilter;
   @override
   void initState() {
     super.initState();
+
     _loadInitialData();
+
     _authSub = FirebaseAuth.instance.authStateChanges().listen((_) {
-      if (mounted) _loadInitialData();
+      if (mounted) {
+        _loadInitialData();
+      }
     });
   }
 
@@ -85,21 +88,20 @@ class _ListingScreenState extends State<ListingScreen> {
   Future<void> _fetchSalesData() async {
     try {
       final snapshot = await FirebaseFirestore.instance
-        .collection('sales')
-        .orderBy('createdAt', descending: true)
-        .get();
+          .collection('sales')
+          .orderBy('createdAt', descending: true)
+          .get();
 
       if (snapshot.docs.isEmpty) {
         _allSales = List.from(_fallback);
       } else {
-        _allSales = snapshot.docs
-          .map((doc) {
-            final data = doc.data();
-            if (!data.containsKey('id')) {
-              data['id'] = doc.id;
-            }
-            return data;
-          }).toList();
+        _allSales = snapshot.docs.map((doc) {
+          final data = doc.data();
+          if (!data.containsKey('id')) {
+            data['id'] = doc.id;
+          }
+          return data;
+        }).toList();
       }
     } catch (e) {
       debugPrint("Error fetching sales, using fallback: $e");
@@ -110,10 +112,10 @@ class _ListingScreenState extends State<ListingScreen> {
   Future<void> _loadFavorites() async {
     try {
       final userDoc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(_currentUserId)
-        .get();
-      
+          .collection('users')
+          .doc(_currentUserId)
+          .get();
+
       if (userDoc.exists && userDoc.data() != null) {
         final List<dynamic> favList = userDoc.data()?['favorites'] ?? [];
         setState(() {
@@ -132,13 +134,13 @@ class _ListingScreenState extends State<ListingScreen> {
     super.dispose();
   }
 
-
   Future<void> _toggleFavorite(String saleId) async {
-    final userDocRef = FirebaseFirestore.instance.collection('users').doc(_currentUserId);
+    final userDocRef =
+        FirebaseFirestore.instance.collection('users').doc(_currentUserId);
     final isCurrentlyFav = _favoriteIds.contains(saleId);
 
     setState(() {
-      if(_favoriteIds.contains(saleId)) {
+      if (_favoriteIds.contains(saleId)) {
         _favoriteIds.remove(saleId);
       } else {
         _favoriteIds.add(saleId);
@@ -166,13 +168,93 @@ class _ListingScreenState extends State<ListingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    List<Map<String, dynamic>> displayedSales = _allSales;
+    List<Map<String, dynamic>> displayedSales = List.from(_allSales);
+
+// Search Filter
     if (_searchQuery.isNotEmpty) {
-      displayedSales = _allSales
-          .where((s) =>
-              (s['title'] ?? '').toString().toLowerCase().contains(_searchQuery) ||
-              (s['address'] ?? '').toString().toLowerCase().contains(_searchQuery))
-          .toList();
+      displayedSales = displayedSales.where((sale) {
+        return (sale['title'] ?? '')
+                .toString()
+                .toLowerCase()
+                .contains(_searchQuery) ||
+            (sale['address'] ?? '')
+                .toString()
+                .toLowerCase()
+                .contains(_searchQuery);
+      }).toList();
+    }
+
+// Category Filter
+    if (_activeFilter != null && _activeFilter!.categories.isNotEmpty) {
+      displayedSales = displayedSales.where((sale) {
+        final tag = (sale['tags'] ?? '').toString().toLowerCase();
+
+        return _activeFilter!.categories.any(
+          (category) => category.toLowerCase() == tag,
+        );
+      }).toList();
+    }
+
+// Min Price Filter
+    if (_activeFilter?.minPrice != null) {
+      displayedSales = displayedSales.where((sale) {
+        final price = double.tryParse(
+              sale['price']?.toString() ?? '0',
+            ) ??
+            0;
+
+        return price >= _activeFilter!.minPrice!;
+      }).toList();
+    }
+
+// Max Price Filter
+    if (_activeFilter?.maxPrice != null) {
+      displayedSales = displayedSales.where((sale) {
+        final price = double.tryParse(
+              sale['price']?.toString() ?? '0',
+            ) ??
+            0;
+
+        return price <= _activeFilter!.maxPrice!;
+      }).toList();
+    }
+
+// Sorting
+    if (_activeFilter != null) {
+      switch (_activeFilter!.sortBy) {
+        case 'High Price':
+          displayedSales.sort((a, b) {
+            final aPrice = double.tryParse(a['price']?.toString() ?? '0') ?? 0;
+
+            final bPrice = double.tryParse(b['price']?.toString() ?? '0') ?? 0;
+
+            return bPrice.compareTo(aPrice);
+          });
+          break;
+
+        case 'Low Price':
+          displayedSales.sort((a, b) {
+            final aPrice = double.tryParse(a['price']?.toString() ?? '0') ?? 0;
+
+            final bPrice = double.tryParse(b['price']?.toString() ?? '0') ?? 0;
+
+            return aPrice.compareTo(bPrice);
+          });
+          break;
+
+        case 'Newest':
+          displayedSales.sort((a, b) {
+            final aTime = a['createdAt'] as Timestamp?;
+            final bTime = b['createdAt'] as Timestamp?;
+
+            if (aTime == null || bTime == null) {
+              return 0;
+            }
+
+            return bTime.compareTo(aTime);
+          });
+          break;
+      }
     }
 
     return Scaffold(
@@ -247,7 +329,17 @@ class _ListingScreenState extends State<ListingScreen> {
                     child: IconButton(
                       icon: const Icon(Icons.tune,
                           color: Colors.black54, size: 22),
-                      onPressed: () => FilterModal.show(context),
+                      onPressed: () async {
+                        final filter = await FilterModal.show(
+                          context,
+                          _activeFilter,
+                        );
+                        if (filter != null) {
+                          setState(() {
+                            _activeFilter = filter;
+                          });
+                        }
+                      },
                     ),
                   ),
                 ],
@@ -259,7 +351,8 @@ class _ListingScreenState extends State<ListingScreen> {
               // Body UI strictly switches using a standard local variable state machine instead of an inline builder
               child: _isLoading
                   ? const Center(
-                      child: CircularProgressIndicator(color: Color(0xFFE8843A)),
+                      child:
+                          CircularProgressIndicator(color: Color(0xFFE8843A)),
                     )
                   : displayedSales.isEmpty
                       ? const Center(child: Text('No sales found.'))
@@ -267,7 +360,8 @@ class _ListingScreenState extends State<ListingScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 16, vertical: 4),
                           itemCount: displayedSales.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 12),
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 12),
                           itemBuilder: (context, index) {
                             final sale = displayedSales[index];
                             final String saleId = sale['id']?.toString() ??
@@ -300,13 +394,12 @@ class _SaleListCard extends StatelessWidget {
   final VoidCallback onTap;
   final bool isFavorite;
   final VoidCallback onFavorite;
-  
-  const _SaleListCard({
-    required this.sale, 
-    required this.onTap, 
-    required this.isFavorite, 
-    required this.onFavorite
-  });
+
+  const _SaleListCard(
+      {required this.sale,
+      required this.onTap,
+      required this.isFavorite,
+      required this.onFavorite});
 
   @override
   Widget build(BuildContext context) {
@@ -359,12 +452,11 @@ class _SaleListCard extends StatelessWidget {
                 ),
               ),
               IconButton(
-                onPressed: onFavorite, 
-                icon: Icon(
-                  isFavorite ? Icons.favorite : Icons.favorite_border,
-                  color: isFavorite ? Color(0xFFE8843A) : Colors.black45,
-                )
-              ),
+                  onPressed: onFavorite,
+                  icon: Icon(
+                    isFavorite ? Icons.favorite : Icons.favorite_border,
+                    color: isFavorite ? Color(0xFFE8843A) : Colors.black45,
+                  )),
             ],
           ),
         ),
