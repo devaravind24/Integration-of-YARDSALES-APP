@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -15,6 +18,15 @@ class ListingScreen extends StatefulWidget {
 class _ListingScreenState extends State<ListingScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+
+  String? _currentUserId = FirebaseAuth.instance.currentUser?.uid;
+  Set<String> _favoriteIds = {};
+  StreamSubscription<User?>? _authSub;
+
+
+  List<Map<String, dynamic>> _allSales = [];
+  bool _isLoading = true;
+
   static const List<Map<String, dynamic>> _fallback = [
     {
       'title': 'Free Giveaway',
@@ -49,13 +61,120 @@ class _ListingScreenState extends State<ListingScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _loadInitialData();
+    _authSub = FirebaseAuth.instance.authStateChanges().listen((_) {
+      if (mounted) _loadInitialData();
+    });
+  }
+
+  Future<void> _loadInitialData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    await _loadFavorites();
+    await _fetchSalesData();
+
+    setState(() {
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _fetchSalesData() async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+        .collection('sales')
+        .orderBy('createdAt', descending: true)
+        .get();
+
+      if (snapshot.docs.isEmpty) {
+        _allSales = List.from(_fallback);
+      } else {
+        _allSales = snapshot.docs
+          .map((doc) {
+            final data = doc.data();
+            if (!data.containsKey('id')) {
+              data['id'] = doc.id;
+            }
+            return data;
+          }).toList();
+      }
+    } catch (e) {
+      debugPrint("Error fetching sales, using fallback: $e");
+      _allSales = List.from(_fallback);
+    }
+  }
+
+  Future<void> _loadFavorites() async {
+    try {
+      final userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(_currentUserId)
+        .get();
+      
+      if (userDoc.exists && userDoc.data() != null) {
+        final List<dynamic> favList = userDoc.data()?['favorites'] ?? [];
+        setState(() {
+          _favoriteIds = favList.map((id) => id.toString()).toSet();
+        });
+      }
+    } catch (e) {
+      debugPrint("Error loading favorites: $e");
+    }
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
+    _authSub?.cancel();
     super.dispose();
+  }
+
+
+  Future<void> _toggleFavorite(String saleId) async {
+    final userDocRef = FirebaseFirestore.instance.collection('users').doc(_currentUserId);
+    final isCurrentlyFav = _favoriteIds.contains(saleId);
+
+    setState(() {
+      if(_favoriteIds.contains(saleId)) {
+        _favoriteIds.remove(saleId);
+      } else {
+        _favoriteIds.add(saleId);
+      }
+    });
+
+    try {
+      if (isCurrentlyFav) {
+        // Remove ID from array
+        await userDocRef.update({
+          'favorites': FieldValue.arrayRemove([saleId]),
+        });
+      } else {
+        // Add ID to array dynamically (creates the field if it doesn't exist)
+        await userDocRef.set({
+          'favorites': FieldValue.arrayUnion([saleId]),
+        }, SetOptions(merge: true));
+      }
+    } catch (e) {
+      debugPrint("Error updating favorite in Firestore: $e");
+      // Revert UI state if the network request fails completely
+      _loadFavorites();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    List<Map<String, dynamic>> displayedSales = _allSales;
+    if (_searchQuery.isNotEmpty) {
+      displayedSales = _allSales
+          .where((s) =>
+              (s['title'] ?? '').toString().toLowerCase().contains(_searchQuery) ||
+              (s['address'] ?? '').toString().toLowerCase().contains(_searchQuery))
+          .toList();
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -137,67 +256,37 @@ class _ListingScreenState extends State<ListingScreen> {
             const SizedBox(height: 16),
             // Firestore-backed list
             Expanded(
-              child: StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('sales')
-                    .orderBy('createdAt', descending: true)
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  List<Map<String, dynamic>> sales;
+              // Body UI strictly switches using a standard local variable state machine instead of an inline builder
+              child: _isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(color: Color(0xFFE8843A)),
+                    )
+                  : displayedSales.isEmpty
+                      ? const Center(child: Text('No sales found.'))
+                      : ListView.separated(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 4),
+                          itemCount: displayedSales.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 12),
+                          itemBuilder: (context, index) {
+                            final sale = displayedSales[index];
+                            final String saleId = sale['id']?.toString() ??
+                                sale['title']?.toString() ??
+                                'unknown_$index';
+                            final bool isFav = _favoriteIds.contains(saleId);
 
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(
-                        child:
-                            CircularProgressIndicator(color: Color(0xFFE8843A)));
-                  }
-
-                  if (snapshot.hasError ||
-                      !snapshot.hasData ||
-                      snapshot.data!.docs.isEmpty) {
-                    sales = _fallback;
-                  } else {
-                    sales = snapshot.data!.docs
-                        .map((doc) => doc.data() as Map<String, dynamic>)
-                        .toList();
-                  }
-
-                  if (_searchQuery.isNotEmpty) {
-                    sales = sales
-                        .where((s) =>
-                            (s['title'] ?? '')
-                                .toString()
-                                .toLowerCase()
-                                .contains(_searchQuery) ||
-                            (s['address'] ?? '')
-                                .toString()
-                                .toLowerCase()
-                                .contains(_searchQuery))
-                        .toList();
-                  }
-
-                  if (sales.isEmpty) {
-                    return const Center(child: Text('No sales found.'));
-                  }
-
-                  return ListView.separated(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 4),
-                    itemCount: sales.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      final sale = sales[index];
-                      return _SaleListCard(
-                        sale: sale,
-                        onTap: () => Navigator.pushNamed(
-                          context,
-                          AppRoutes.details,
-                          arguments: sale,
+                            return _SaleListCard(
+                              sale: sale,
+                              isFavorite: isFav,
+                              onFavorite: () => _toggleFavorite(saleId),
+                              onTap: () => Navigator.pushNamed(
+                                context,
+                                AppRoutes.details,
+                                arguments: sale,
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
-                  );
-                },
-              ),
             ),
           ],
         ),
@@ -209,7 +298,15 @@ class _ListingScreenState extends State<ListingScreen> {
 class _SaleListCard extends StatelessWidget {
   final Map<String, dynamic> sale;
   final VoidCallback onTap;
-  const _SaleListCard({required this.sale, required this.onTap});
+  final bool isFavorite;
+  final VoidCallback onFavorite;
+  
+  const _SaleListCard({
+    required this.sale, 
+    required this.onTap, 
+    required this.isFavorite, 
+    required this.onFavorite
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -226,30 +323,48 @@ class _SaleListCard extends StatelessWidget {
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-          child: Column(
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                sale['title']?.toString() ?? '',
-                style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: Colors.black87),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      sale['title']?.toString() ?? '',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Colors.black87),
+                    ),
+                    const SizedBox(height: 4),
+                    if ((sale['address']?.toString() ?? '').isNotEmpty)
+                      Text(sale['address']!.toString(),
+                          style: const TextStyle(
+                              color: Colors.black54, fontSize: 13)),
+                    if ((sale['datetime']?.toString() ?? '').isNotEmpty)
+                      Text(sale['datetime']!.toString(),
+                          style: const TextStyle(
+                              color: Colors.black54, fontSize: 13)),
+                    if ((sale['']?.toString() ?? '').isNotEmpty)
+                      Text(sale['datetime']!.toString(),
+                          style: const TextStyle(
+                              color: Colors.black54, fontSize: 13)),
+                    if ((sale['distance']?.toString() ?? '').isNotEmpty)
+                      Text(sale['distance']!.toString(),
+                          style: const TextStyle(
+                              color: Colors.black54, fontSize: 13)),
+                  ],
+                ),
               ),
-              const SizedBox(height: 4),
-              if ((sale['address']?.toString() ?? '').isNotEmpty)
-                Text(sale['address']!.toString(),
-                    style: const TextStyle(
-                        color: Colors.black54, fontSize: 13)),
-              if ((sale['datetime']?.toString() ?? '').isNotEmpty)
-                Text(sale['datetime']!.toString(),
-                    style: const TextStyle(
-                        color: Colors.black54, fontSize: 13)),
-              if ((sale['distance']?.toString() ?? '').isNotEmpty)
-                Text(sale['distance']!.toString(),
-                    style: const TextStyle(
-                        color: Colors.black54, fontSize: 13)),
+              IconButton(
+                onPressed: onFavorite, 
+                icon: Icon(
+                  isFavorite ? Icons.favorite : Icons.favorite_border,
+                  color: isFavorite ? Color(0xFFE8843A) : Colors.black45,
+                )
+              ),
             ],
           ),
         ),
