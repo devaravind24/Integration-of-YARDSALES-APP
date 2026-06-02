@@ -42,13 +42,11 @@ class CustomDrawer extends StatelessWidget {
                   const SizedBox(height: 6),
                   const Text(
                     'Yard Sale Treasure Map',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 14),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                   ),
                   const Text(
                     'San Jose, CA',
-                    style:
-                        TextStyle(color: Color(0xFF8E8E93), fontSize: 12),
+                    style: TextStyle(color: Color(0xFF8E8E93), fontSize: 12),
                   ),
                   const SizedBox(height: 4),
                   StreamBuilder<User?>(
@@ -56,9 +54,8 @@ class CustomDrawer extends StatelessWidget {
                     builder: (_, snap) {
                       final name = (snap.data?.displayName ?? '').trim();
                       final email = snap.data?.email ?? '';
-                      final fallback = email.contains('@')
-                          ? email.split('@').first
-                          : '';
+                      final fallback =
+                          email.contains('@') ? email.split('@').first : '';
                       final shown = name.isNotEmpty ? name : fallback;
                       if (shown.isEmpty) return const SizedBox.shrink();
                       return Text(
@@ -76,7 +73,6 @@ class CustomDrawer extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             const Divider(height: 1),
-
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(vertical: 4),
@@ -99,11 +95,33 @@ class CustomDrawer extends StatelessWidget {
                       onTap: () =>
                           Navigator.pushNamed(context, AppRoutes.schedule),
                     ),
-                    _DrawerItem(icon: Icons.tag,                 label: 'Updates',        onTap: () {}),
-                    _DrawerItem(icon: Icons.email_outlined,      label: 'Notifications',  onTap: () {}),
-                    _DrawerItem(icon: Icons.chat_bubble_outline, label: 'Chats',          onTap: () {}),
-                    _DrawerItem(icon: Icons.settings_outlined,   label: 'Settings',       onTap: () {}),
-                    _DrawerItem(icon: Icons.help_outline,        label: 'Help & Support', onTap: () {}),
+                    _DrawerItem(
+                        icon: Icons.tag, label: 'Updates', onTap: () {}),
+                    _DrawerItem(
+                        icon: Icons.email_outlined,
+                        label: 'Notifications',
+                        onTap: () {}),
+                    _DrawerItem(
+                      icon: Icons.chat_bubble_outline,
+                      label: 'Chats',
+                      onTap: () =>
+                          Navigator.pushNamed(context, AppRoutes.chatInboxScreen),
+                    ),
+                    // ── Settings ──────────────────────────────────
+                    _DrawerItem(
+                      icon: Icons.settings_outlined,
+                      label: 'Settings',
+                      onTap: () =>
+                          Navigator.pushNamed(context, AppRoutes.settings),
+                    ),
+
+                    // ── Help & Support ────────────────────────────
+                    _DrawerItem(
+                      icon: Icons.help_outline,
+                      label: 'Help & Support',
+                      onTap: () => Navigator.pushNamed(context, AppRoutes.help),
+                    ),
+
                     _DrawerItem(
                       icon: Icons.logout,
                       label: 'Logout',
@@ -114,8 +132,6 @@ class CustomDrawer extends StatelessWidget {
                 ),
               ),
             ),
-
-            // ── READY TO SELL CTA (always pinned to bottom) ─
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
               child: GestureDetector(

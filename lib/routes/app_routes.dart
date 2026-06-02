@@ -8,4 +8,7 @@ class AppRoutes {
   static const schedule      = '/schedule';
   static const createListing = '/create-listing';
   static const map           = '/map';
+  static const settings      = '/settings';
+  static const help          = '/help';
+  static const chatInboxScreen = '/chat-inbox';
 }
