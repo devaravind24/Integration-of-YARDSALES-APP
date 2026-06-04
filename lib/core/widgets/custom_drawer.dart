@@ -11,9 +11,18 @@ class CustomDrawer extends StatelessWidget {
   const CustomDrawer({super.key});
 
   Future<void> _logout(BuildContext context) async {
-    // Stop pushes to this device before signing out.
-    await NotificationService.instance.clearToken();
+    // Close the drawer immediately so the user sees something happen.
+    Navigator.of(context).pop();
+
+    // Try to clear the FCM token but never let it block the sign-out — if
+    // FCM isn't configured or the network is down this can hang otherwise.
+    try {
+      await NotificationService.instance.clearToken();
+    } catch (_) {}
+
     await AuthService().signOut();
+
+    // The GoRouter auth guard will also redirect, but this makes it explicit.
     if (context.mounted) {
       context.goNamed(AppRoutes.nLogin);
     }
@@ -81,8 +90,7 @@ class CustomDrawer extends StatelessWidget {
                     _DrawerItem(
                       icon: Icons.edit_outlined,
                       label: 'Edit Profile',
-                      onTap: () =>
-                          context.pushNamed(AppRoutes.nProfile),
+                      onTap: () => context.pushNamed(AppRoutes.nProfile),
                     ),
                     _DrawerItem(
                       icon: Icons.location_on_outlined,
@@ -92,8 +100,7 @@ class CustomDrawer extends StatelessWidget {
                     _DrawerItem(
                       icon: Icons.bookmark_outline,
                       label: 'Saved',
-                      onTap: () =>
-                          context.pushNamed(AppRoutes.nSchedule),
+                      onTap: () => context.pushNamed(AppRoutes.nSchedule),
                     ),
                     _DrawerItem(
                         icon: Icons.tag, label: 'Updates', onTap: () {}),
@@ -105,15 +112,13 @@ class CustomDrawer extends StatelessWidget {
                     _DrawerItem(
                       icon: Icons.chat_bubble_outline,
                       label: 'Chats',
-                      onTap: () =>
-                          context.pushNamed(AppRoutes.nChatInbox),
+                      onTap: () => context.pushNamed(AppRoutes.nChatInbox),
                     ),
                     // ── Settings ──────────────────────────────────
                     _DrawerItem(
                       icon: Icons.settings_outlined,
                       label: 'Settings',
-                      onTap: () =>
-                          context.pushNamed(AppRoutes.nSettings),
+                      onTap: () => context.pushNamed(AppRoutes.nSettings),
                     ),
 
                     // ── Help & Support ────────────────────────────
