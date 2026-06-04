@@ -11,12 +11,11 @@ class CustomDrawer extends StatelessWidget {
   const CustomDrawer({super.key});
 
   Future<void> _logout(BuildContext context) async {
-    // Stop pushes to this device before signing out.
+    Navigator.pop(context); // close the drawer first
     await NotificationService.instance.clearToken();
     await AuthService().signOut();
-    if (context.mounted) {
-      context.goNamed(AppRoutes.nLogin);
-    }
+    // currentUser is null by this point — safe to navigate explicitly
+    if (context.mounted) context.goNamed(AppRoutes.nLogin);
   }
 
   @override
@@ -126,7 +125,7 @@ class CustomDrawer extends StatelessWidget {
                     _DrawerItem(
                       icon: Icons.logout,
                       label: 'Logout',
-                      onTap: () => _logout(context),
+                      onTap: () => context.pushNamed(AppRoutes.nLogin),
                       color: Colors.red,
                     ),
                   ],

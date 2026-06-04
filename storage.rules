@@ -25,5 +25,10 @@ service firebase.storage {
       allow read: if isSignedIn();
       allow write: if isSignedIn() && isImageUnder8MB();
     }
+
+    match /profile_images/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && isImageUnder8MB();
+    }
   }
 }

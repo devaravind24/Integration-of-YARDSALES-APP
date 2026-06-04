@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/widgets/yard_sale_logo.dart';
 import '../../routes/app_routes.dart';
@@ -27,9 +26,8 @@ class _SplashScreenState extends State<SplashScreen>
 
     Future.delayed(const Duration(seconds: 2), () {
       if (!mounted) return;
-      // Send signed-in users straight to home; otherwise to login.
-      final loggedIn = FirebaseAuth.instance.currentUser != null;
-      context.goNamed(loggedIn ? AppRoutes.nHome : AppRoutes.nLogin);
+      // Always go to login; GoRouter's auth redirect sends logged-in users to home.
+      context.goNamed(AppRoutes.nLogin);
     });
   }
 

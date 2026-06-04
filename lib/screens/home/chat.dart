@@ -344,7 +344,6 @@ class _MessageBubble extends StatelessWidget {
     final imageUrl = data['imageUrl'] as String? ?? '';
     final sentAt   = (data['sentAt'] as Timestamp?)?.toDate();
     final readBy   = List<String>.from(data['readBy'] ?? []);
-    final me       = FirebaseAuth.instance.currentUser!;
     final isRead   = isMe && readBy.length > 1; // other person has read it
 
     return Align(

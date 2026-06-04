@@ -297,7 +297,7 @@ class _InstagramBrand extends StatelessWidget {
   }
 }
 
-class _OrangeInputField extends StatelessWidget {
+class _OrangeInputField extends StatefulWidget {
   final String hint;
   final IconData icon;
   final TextEditingController controller;
@@ -313,6 +313,13 @@ class _OrangeInputField extends StatelessWidget {
   });
 
   @override
+  State<_OrangeInputField> createState() => _OrangeInputFieldState();
+}
+
+class _OrangeInputFieldState extends State<_OrangeInputField> {
+  late bool _obscured = widget.obscure;
+
+  @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
@@ -320,17 +327,32 @@ class _OrangeInputField extends StatelessWidget {
         borderRadius: BorderRadius.circular(30),
       ),
       child: TextField(
-        controller: controller,
-        obscureText: obscure,
-        keyboardType: keyboardType,
+        controller: widget.controller,
+        obscureText: _obscured,
+        keyboardType: widget.keyboardType,
         style: const TextStyle(
             color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16),
         decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w500),
-          prefixIcon: Icon(icon, color: Colors.white70, size: 22),
+          hintText: widget.hint,
+          hintStyle: const TextStyle(
+              color: Colors.white70, fontWeight: FontWeight.w500),
+          prefixIcon: Icon(widget.icon, color: Colors.white70, size: 22),
+          // Show the eye toggle only on password (obscure) fields.
+          suffixIcon: widget.obscure
+              ? IconButton(
+                  icon: Icon(
+                    _obscured
+                        ? Icons.visibility_off_rounded
+                        : Icons.visibility_rounded,
+                    color: Colors.white70,
+                    size: 22,
+                  ),
+                  onPressed: () => setState(() => _obscured = !_obscured),
+                )
+              : null,
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+          contentPadding:
+              const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
         ),
       ),
     );

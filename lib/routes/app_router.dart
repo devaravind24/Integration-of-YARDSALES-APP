@@ -81,7 +81,13 @@ class AppRouter {
       GoRoute(
         path: AppRoutes.home,
         name: AppRoutes.nHome,
-        builder: (_, __) => const BottomNavScreen(),
+        builder: (_, state) {
+          final q = state.uri.queryParameters['q'] ?? '';
+          final tab = int.tryParse(
+                  state.uri.queryParameters['tab'] ?? '0') ??
+              0;
+          return BottomNavScreen(initialTab: tab, initialSearch: q);
+        },
       ),
       GoRoute(
         path: AppRoutes.profile,

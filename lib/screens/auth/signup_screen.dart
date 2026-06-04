@@ -63,14 +63,9 @@ class _SignupScreenState extends State<SignupScreen> {
         role: _isBuyer ? 'buyer' : 'seller',
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Account created! Please log in.'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pop(context); // close the signup screen
-        context.goNamed(AppRoutes.nLogin);
+        // Navigate straight to home — the user is now authenticated and the
+        // GoRouter auth redirect would send them there anyway.
+        context.goNamed(AppRoutes.nHome);
       }
     } catch (e) {
       _showSnack(e.toString());

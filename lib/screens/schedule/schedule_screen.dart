@@ -151,7 +151,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   IconButton(
                     icon: const Icon(Icons.account_circle_outlined,
                         color: Color(0xFF2B5BA8)),
-                    onPressed: () {},
+                    onPressed: () => context.pushNamed(AppRoutes.nProfile),
                   ),
                 ],
               ),
