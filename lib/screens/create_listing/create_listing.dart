@@ -52,7 +52,6 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
 
   // Helper method to present the Material Time Picker UI dialog
   Future<void> _selectTime(BuildContext context) async {
-    print(context);
     final TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: _startTime ?? TimeOfDay.now(),

@@ -176,32 +176,76 @@ class _SettingsPageState extends State<SettingsPage> {
 
   void _showChangePasswordDialog(BuildContext context) {
     final ctrl = TextEditingController();
+    bool saving = false;
+
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Change Password'),
-        content: TextField(
-          controller: ctrl,
-          obscureText: true,
-          decoration: const InputDecoration(
-            labelText: 'New Password',
-            border: OutlineInputBorder(),
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (dialogCtx, setDialogState) => AlertDialog(
+          title: const Text('Change Password'),
+          content: TextField(
+            controller: ctrl,
+            obscureText: true,
+            decoration: const InputDecoration(
+              labelText: 'New Password (min 6 characters)',
+              border: OutlineInputBorder(),
+            ),
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2B5BA8)),
+              onPressed: saving
+                  ? null
+                  : () async {
+                      final newPass = ctrl.text.trim();
+                      if (newPass.length < 6) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text(
+                                  'Password must be at least 6 characters.')),
+                        );
+                        return;
+                      }
+                      setDialogState(() => saving = true);
+                      try {
+                        await FirebaseAuth.instance.currentUser
+                            ?.updatePassword(newPass);
+                        if (context.mounted) {
+                          Navigator.pop(dialogCtx);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Password updated!'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        }
+                      } on FirebaseAuthException catch (e) {
+                        setDialogState(() => saving = false);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                                e.message ?? 'Failed to update password.'),
+                            backgroundColor: Colors.redAccent,
+                          ),
+                        );
+                      }
+                    },
+              child: saving
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                          color: Colors.white, strokeWidth: 2),
+                    )
+                  : const Text('Update'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2B5BA8)),
-            onPressed: () {
-              Navigator.pop(context);
-              // TODO: FirebaseAuth.instance.currentUser?.updatePassword(ctrl.text);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Password updated!')),
-              );
-            },
-            child: const Text('Update'),
-          ),
-        ],
       ),
     );
   }

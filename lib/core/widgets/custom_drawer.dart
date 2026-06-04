@@ -11,21 +11,11 @@ class CustomDrawer extends StatelessWidget {
   const CustomDrawer({super.key});
 
   Future<void> _logout(BuildContext context) async {
-    // Close the drawer immediately so the user sees something happen.
-    Navigator.of(context).pop();
-
-    // Try to clear the FCM token but never let it block the sign-out — if
-    // FCM isn't configured or the network is down this can hang otherwise.
-    try {
-      await NotificationService.instance.clearToken();
-    } catch (_) {}
-
+    Navigator.pop(context); // close the drawer first
+    await NotificationService.instance.clearToken();
     await AuthService().signOut();
-
-    // The GoRouter auth guard will also redirect, but this makes it explicit.
-    if (context.mounted) {
-      context.goNamed(AppRoutes.nLogin);
-    }
+    // currentUser is null by this point — safe to navigate explicitly
+    if (context.mounted) context.goNamed(AppRoutes.nLogin);
   }
 
   @override
@@ -131,7 +121,7 @@ class CustomDrawer extends StatelessWidget {
                     _DrawerItem(
                       icon: Icons.logout,
                       label: 'Logout',
-                      onTap: () => _logout(context),
+                      onTap: () => context.pushNamed(AppRoutes.nLogin),
                       color: Colors.red,
                     ),
                   ],

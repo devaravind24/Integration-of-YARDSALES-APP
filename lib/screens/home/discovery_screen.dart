@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -26,7 +27,8 @@ const List<Map<String, dynamic>> _demoSales = [
 const LatLng _kSanJose = LatLng(37.3382, -121.8863);
 
 class DiscoveryScreen extends StatefulWidget {
-  const DiscoveryScreen({super.key});
+  final void Function(String query)? onSearch;
+  const DiscoveryScreen({super.key, this.onSearch});
 
   @override
   State<DiscoveryScreen> createState() => _DiscoveryScreenState();
@@ -37,6 +39,8 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
   final TextEditingController _searchController = TextEditingController();
   final AuthService _auth = AuthService();
   String _displayName = 'there';
+  String _initials = '';
+  String? _photoUrl;
 
   // Google Maps
   final Completer<GoogleMapController> _mapController = Completer();
@@ -55,10 +59,26 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
     });
   }
 
+  void _onSearch(String query) {
+    widget.onSearch?.call(query.trim());
+  }
+
   Future<void> _loadDisplayName() async {
     final name = await _auth.resolveDisplayName();
+    final user = FirebaseAuth.instance.currentUser;
     if (!mounted) return;
-    setState(() => _displayName = name.split(' ').first);
+    // Filter empty segments so trailing/leading spaces don't crash index access
+    final parts = name.trim().split(' ').where((p) => p.isNotEmpty).toList();
+    final initials = parts.length >= 2
+        ? '${parts[0][0]}${parts[1][0]}'.toUpperCase()
+        : parts.isNotEmpty
+            ? parts[0][0].toUpperCase()
+            : '';
+    setState(() {
+      _displayName = parts.isNotEmpty ? parts.first : 'there';
+      _initials = initials;
+      _photoUrl = user?.photoURL;
+    });
   }
 
   Future<void> _loadMarkers() async {
@@ -211,14 +231,42 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                       ],
                     ),
                   ),
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(10),
+                  GestureDetector(
+                    onTap: () => context.pushNamed(AppRoutes.nProfile),
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2B5BA8),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: _photoUrl != null
+                          ? CachedNetworkImage(
+                              imageUrl: _photoUrl!,
+                              fit: BoxFit.cover,
+                              errorWidget: (_, __, ___) => Center(
+                                child: Text(
+                                  _initials,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ),
+                            )
+                          : Center(
+                              child: Text(
+                                _initials,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
+                              ),
+                            ),
                     ),
-                    child: const Icon(Icons.person, color: Colors.grey),
                   ),
                 ],
               ),
@@ -245,15 +293,23 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                       ),
                       child: TextField(
                         controller: _searchController,
-                        decoration: const InputDecoration(
+                        textInputAction: TextInputAction.search,
+                        onSubmitted: _onSearch,
+                        decoration: InputDecoration(
                           hintText: 'Search Yard sales',
-                          hintStyle: TextStyle(
+                          hintStyle: const TextStyle(
                               color: Color(0xFF2B5BA8), fontSize: 14),
-                          prefixIcon: Icon(Icons.search,
+                          prefixIcon: const Icon(Icons.search,
                               color: Color(0xFF2B5BA8), size: 20),
                           border: InputBorder.none,
                           contentPadding:
-                              EdgeInsets.symmetric(vertical: 13),
+                              const EdgeInsets.symmetric(vertical: 13),
+                          suffixIcon: IconButton(
+                            icon: const Icon(Icons.arrow_forward,
+                                color: Color(0xFF2B5BA8), size: 20),
+                            onPressed: () =>
+                                _onSearch(_searchController.text),
+                          ),
                         ),
                       ),
                     ),
@@ -282,7 +338,6 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                   borderRadius: BorderRadius.circular(20),
                   child: Stack(
                     children: [
-                      // Google Map
                       GoogleMap(
                         onMapCreated: (c) => _mapController.complete(c),
                         initialCameraPosition: const CameraPosition(
@@ -295,8 +350,6 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                         zoomControlsEnabled: false,
                         mapToolbarEnabled: false,
                       ),
-
-                      // Live sales-count chip (top-right overlay)
                       Positioned(
                         top: 12,
                         right: 12,
@@ -315,8 +368,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                                 borderRadius: BorderRadius.circular(20),
                                 boxShadow: [
                                   BoxShadow(
-                                    color:
-                                        Colors.black.withOpacity(0.12),
+                                    color: Colors.black.withOpacity(0.12),
                                     blurRadius: 6,
                                     offset: const Offset(0, 2),
                                   ),

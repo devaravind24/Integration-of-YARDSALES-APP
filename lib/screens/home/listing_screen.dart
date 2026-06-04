@@ -1,5 +1,6 @@
 import 'dart:async';
 import '../../core/widgets/filter_data.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -8,9 +9,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/widgets/filter_modal.dart';
 import '../../core/widgets/yard_sale_logo.dart';
 import '../../routes/app_routes.dart';
+import '../../services/sale_service.dart';
 
 class ListingScreen extends StatefulWidget {
-  const ListingScreen({super.key});
+  final String initialSearch;
+  const ListingScreen({super.key, this.initialSearch = ''});
 
   @override
   State<ListingScreen> createState() => _ListingScreenState();
@@ -64,12 +67,15 @@ class _ListingScreenState extends State<ListingScreen> {
   void initState() {
     super.initState();
 
+    if (widget.initialSearch.isNotEmpty) {
+      _searchController.text = widget.initialSearch;
+      _searchQuery = widget.initialSearch.toLowerCase();
+    }
+
     _loadInitialData();
 
     _authSub = FirebaseAuth.instance.authStateChanges().listen((_) {
-      if (mounted) {
-        _loadInitialData();
-      }
+      if (mounted) _loadInitialData();
     });
   }
 
@@ -125,6 +131,16 @@ class _ListingScreenState extends State<ListingScreen> {
       }
     } catch (e) {
       debugPrint("Error loading favorites: $e");
+    }
+  }
+
+  @override
+  void didUpdateWidget(ListingScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialSearch != oldWidget.initialSearch) {
+      final q = widget.initialSearch;
+      _searchController.text = q;
+      setState(() => _searchQuery = q.toLowerCase());
     }
   }
 
@@ -422,6 +438,8 @@ class _SaleListCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              _SaleThumb(sale: sale),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -443,10 +461,6 @@ class _SaleListCard extends StatelessWidget {
                       Text(sale['datetime']!.toString(),
                           style: const TextStyle(
                               color: Colors.black54, fontSize: 13)),
-                    if ((sale['']?.toString() ?? '').isNotEmpty)
-                      Text(sale['datetime']!.toString(),
-                          style: const TextStyle(
-                              color: Colors.black54, fontSize: 13)),
                     if ((sale['distance']?.toString() ?? '').isNotEmpty)
                       Text(sale['distance']!.toString(),
                           style: const TextStyle(
@@ -464,6 +478,57 @@ class _SaleListCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Small rounded thumbnail of the first user-uploaded image for a sale.
+/// Reuses [SaleService.imagesFromSale] so it stays consistent with the
+/// Sale Details carousel. Falls back to an icon when a listing has no photo
+/// (e.g. demo/placeholder rows or listings posted without an image).
+class _SaleThumb extends StatelessWidget {
+  final Map<String, dynamic> sale;
+  const _SaleThumb({required this.sale});
+
+  @override
+  Widget build(BuildContext context) {
+    final images = SaleService.imagesFromSale(sale);
+    const double size = 60;
+
+    Widget placeholder() => Container(
+          width: size,
+          height: size,
+          color: Colors.white.withOpacity(0.35),
+          alignment: Alignment.center,
+          child: const Icon(Icons.image_outlined,
+              color: Colors.white, size: 26),
+        );
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: images.isEmpty
+          ? placeholder()
+          : CachedNetworkImage(
+              imageUrl: images.first,
+              width: size,
+              height: size,
+              fit: BoxFit.cover,
+              placeholder: (_, __) => Container(
+                width: size,
+                height: size,
+                color: Colors.white.withOpacity(0.35),
+                alignment: Alignment.center,
+                child: const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              errorWidget: (_, __, ___) => placeholder(),
+            ),
     );
   }
 }

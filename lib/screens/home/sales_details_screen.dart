@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -27,9 +28,9 @@ class SaleDetailsScreen extends StatefulWidget {
 class _SaleDetailsScreenState extends State<SaleDetailsScreen> {
   final _chatService = ChatService();
   bool _contacting = false;
+  List<String> _fetchedImages = [];
+  bool _imagesFetched = false;
 
-  /// Configure this to your deployed deep-link domain (must be set up for
-  /// Android App Links / iOS Universal Links to open the app directly).
   static const _shareBaseUrl = 'https://yardsale.app';
 
   Map<String, dynamic> get sale => widget.sale;
@@ -43,22 +44,65 @@ class _SaleDetailsScreenState extends State<SaleDetailsScreen> {
     return v;
   }
 
-  List<String> get _images => SaleService.imagesFromSale(sale);
+  // Use freshly fetched URLs once available, fall back to whatever extra had.
+  List<String> get _images =>
+      _imagesFetched ? _fetchedImages : SaleService.imagesFromSale(sale);
 
-  Future<String> _fetchSellerUsername(String? sellerId) async {
-    if (sellerId == null || sellerId.isEmpty) return 'Local Seller';
+  @override
+  void initState() {
+    super.initState();
+    _loadImages();
+  }
+
+  Future<void> _loadImages() async {
+    final id = _saleId;
+    if (id.isEmpty || id == '_') {
+      setState(() => _imagesFetched = true);
+      return;
+    }
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('sales')
+          .doc(id)
+          .get();
+      if (!mounted) return;
+      final urls = doc.exists && doc.data() != null
+          ? SaleService.imagesFromSale(
+              Map<String, dynamic>.from(doc.data()!))
+          : SaleService.imagesFromSale(sale);
+      setState(() {
+        _fetchedImages = urls;
+        _imagesFetched = true;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _imagesFetched = true);
+    }
+  }
+
+  Future<Map<String, String?>> _fetchSellerInfo(String? sellerId) async {
+    if (sellerId == null || sellerId.isEmpty) {
+      return {'name': 'Local Seller', 'photoUrl': null};
+    }
     try {
       final doc = await FirebaseFirestore.instance
           .collection('users')
           .doc(sellerId)
           .get();
       if (doc.exists && doc.data() != null) {
-        return doc.data()?['displayName'] ?? 'Local Seller';
+        return {
+          'name': doc.data()?['displayName'] as String? ?? 'Local Seller',
+          'photoUrl': doc.data()?['photoUrl'] as String?,
+        };
       }
     } catch (e) {
-      debugPrint('Error fetching seller username: $e');
+      debugPrint('Error fetching seller info: $e');
     }
-    return 'Local Seller';
+    return {'name': 'Local Seller', 'photoUrl': null};
+  }
+
+  Future<String> _fetchSellerUsername(String? sellerId) async {
+    final info = await _fetchSellerInfo(sellerId);
+    return info['name'] ?? 'Local Seller';
   }
 
   // ── Feature 6: Share ───────────────────────────────────────────────
@@ -144,7 +188,6 @@ class _SaleDetailsScreenState extends State<SaleDetailsScreen> {
   Widget build(BuildContext context) {
     final images = _images;
     final hasImages = images.isNotEmpty;
-
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -187,14 +230,47 @@ class _SaleDetailsScreenState extends State<SaleDetailsScreen> {
               ),
             ),
 
-            // Feature 3 — image carousel (main + multi-image + states)
-            if (hasImages)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-                  child: SaleImageCarousel(imageUrls: images),
-                ),
+            // Image carousel — fetched fresh from Firestore
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                child: !_imagesFetched
+                    ? Container(
+                        height: 220,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        alignment: Alignment.center,
+                        child: const CircularProgressIndicator(
+                          color: Color(0xFFE8843A),
+                          strokeWidth: 2.5,
+                        ),
+                      )
+                    : hasImages
+                        ? SaleImageCarousel(imageUrls: images)
+                        : Container(
+                            height: 220,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            alignment: Alignment.center,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.image_outlined,
+                                    size: 48, color: Colors.grey.shade400),
+                                const SizedBox(height: 8),
+                                Text('No image provided',
+                                    style: TextStyle(
+                                        color: Colors.grey.shade500,
+                                        fontSize: 13)),
+                              ],
+                            ),
+                          ),
               ),
+            ),
 
             SliverToBoxAdapter(
               child: Padding(
@@ -284,20 +360,78 @@ class _SaleDetailsScreenState extends State<SaleDetailsScreen> {
                         color: Color(0xFF1A1A2E),
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    FutureBuilder<String>(
-                      future: _fetchSellerUsername(_sellerId),
+                    const SizedBox(height: 12),
+                    FutureBuilder<Map<String, String?>>(
+                      future: _fetchSellerInfo(_sellerId),
                       builder: (context, snapshot) {
-                        final username = snapshot.data ?? 'Loading...';
-                        return Text(
-                          'Posted by $username\n 2 hours ago.',
-                          style: TextStyle(
-                            color: snapshot.hasData
-                                ? Colors.black87
-                                : Colors.black45,
-                            fontSize: 14,
-                            height: 1.6,
-                          ),
+                        final name     = snapshot.data?['name'] ?? 'Loading...';
+                        final photoUrl = snapshot.data?['photoUrl'];
+                        final initial  = name.isNotEmpty
+                            ? name[0].toUpperCase()
+                            : '?';
+
+                        return Row(
+                          children: [
+                            Container(
+                              width: 46,
+                              height: 46,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Color(0xFFE8843A),
+                              ),
+                              child: photoUrl != null && photoUrl.isNotEmpty
+                                  ? ClipOval(
+                                      child: CachedNetworkImage(
+                                        imageUrl: photoUrl,
+                                        width: 46,
+                                        height: 46,
+                                        fit: BoxFit.cover,
+                                        placeholder: (_, __) => Center(
+                                          child: Text(initial,
+                                              style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 18)),
+                                        ),
+                                        errorWidget: (_, __, ___) => Center(
+                                          child: Text(initial,
+                                              style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 18)),
+                                        ),
+                                      ),
+                                    )
+                                  : Center(
+                                      child: Text(initial,
+                                          style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 18)),
+                                    ),
+                            ),
+                            const SizedBox(width: 12),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  name,
+                                  style: TextStyle(
+                                    color: snapshot.hasData
+                                        ? Colors.black87
+                                        : Colors.black45,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const Text(
+                                  'Seller',
+                                  style: TextStyle(
+                                      color: Colors.black45, fontSize: 12),
+                                ),
+                              ],
+                            ),
+                          ],
                         );
                       },
                     ),

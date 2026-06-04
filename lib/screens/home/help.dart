@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'legal_screen.dart';
 import 'support_chat_screen.dart';
@@ -159,7 +160,7 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
             icon: Icons.email_outlined,
             label: 'Email Support',
             subtitle: 'support@yardsalesapp.com',
-            onTap: () => _snack(context, 'Email support coming soon!'),
+            onTap: () => _emailSupport(context),
           ),
           _ContactTile(
             icon: Icons.chat_bubble_outline,
@@ -226,6 +227,27 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
 
   void _snack(BuildContext context, String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  /// Opens the device's default mail app with a pre-filled support email.
+  Future<void> _emailSupport(BuildContext context) async {
+    final uri = Uri(
+      scheme: 'mailto',
+      path: 'support@yardsalesapp.com',
+      query: 'subject=${Uri.encodeComponent('YardSales App Support')}'
+          '&body=${Uri.encodeComponent('Hi YardSales team,\n\n')}',
+    );
+    try {
+      final launched =
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched && context.mounted) {
+        _snack(context, 'No mail app found. Email support@yardsalesapp.com');
+      }
+    } catch (_) {
+      if (context.mounted) {
+        _snack(context, 'No mail app found. Email support@yardsalesapp.com');
+      }
+    }
   }
 
   void _showBugDialog(BuildContext context) {

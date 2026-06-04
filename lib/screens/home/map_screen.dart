@@ -259,7 +259,6 @@ class _MapScreenState extends State<MapScreen> {
                     myLocationButtonEnabled: false,
                     zoomControlsEnabled: false,
                     mapToolbarEnabled: false,
-                    // Tapping the map background dismisses the card
                     onTap: (_) => setState(() => _selectedSale = null),
                   ),
                 ),
@@ -423,3 +422,4 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 }
+

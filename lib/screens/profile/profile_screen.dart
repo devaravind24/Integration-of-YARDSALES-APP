@@ -1,11 +1,13 @@
 import 'dart:async';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../routes/app_routes.dart';
 import '../../services/auth_service.dart';
+import '../../services/notification_service.dart';
 import '../profile/edit_profile_page.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -17,11 +19,13 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _isShopping = true;
+  bool _loggingOut = false;
 
   final AuthService _auth = AuthService();
 
   String _displayName = 'Loading...';
   String _email = '';
+  String? _photoUrl;
 
   StreamSubscription<User?>? _authSub;
 
@@ -48,15 +52,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user != null) {
-      _email = user.email ?? '';
-
       if ((user.displayName ?? '').trim().isNotEmpty) {
         if (!mounted) return;
-
         setState(() {
           _displayName = user.displayName!.trim();
+          _email = user.email ?? '';
+          _photoUrl = user.photoURL;
         });
-
         return;
       }
     }
@@ -68,6 +70,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() {
       _displayName = resolved;
       _email = user?.email ?? '';
+      _photoUrl = user?.photoURL;
     });
   }
 
@@ -84,18 +87,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  // Only pop when this screen is the pushed /profile route (tapped from
+  // Discovery). In tab mode the GoRouter location is /home — popping there
+  // would remove the BottomNavScreen and leave a blank screen.
+  void _handleBack() {
+      context.goNamed(AppRoutes.nHome);
+    
+  }
+
   Future<void> _logout() async {
-    await FirebaseAuth.instance.signOut();
-
-    if (!mounted) return;
-
-    context.goNamed(AppRoutes.nLogin);
+    setState(() => _loggingOut = true);
+    try {
+      await NotificationService.instance.clearToken();
+      await _auth.signOut();
+      // currentUser is null by this point — safe to navigate explicitly
+      if (mounted) context.goNamed(AppRoutes.nLogin);
+    } catch (e) {
+      debugPrint('Logout failed: $e');
+      if (mounted) {
+        setState(() => _loggingOut = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Logout failed. Please try again.')),
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final initials =
-        _displayName.isNotEmpty ? _displayName.trim()[0].toUpperCase() : "?";
+    final trimmed = _displayName.trim();
+    final initials = trimmed.isNotEmpty ? trimmed[0].toUpperCase() : '?';
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -108,23 +129,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                 child: Row(
                   children: [
-                    // Show back button ONLY when Profile was pushed onto the
-                    // stack (e.g. from the Home page's profile icon). When
-                    // Profile is the bottom-nav tab, canPop() is false and
-                    // we render a spacer so the title stays centered.
-                    if (context.canPop())
-                      IconButton(
-                        onPressed: () => context.pop(),
-                        icon: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.grey.shade300),
-                          ),
-                          child: const Icon(
-                            Icons.chevron_left,
-                            size: 20,
-                            color: Colors.black54,
+                    IconButton(
+                      onPressed: _handleBack,
+                      icon: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.grey.shade300,
                           ),
                         ),
                       )
@@ -166,16 +178,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ],
                     ),
-                    child: Center(
-                      child: Text(
-                        initials,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 42,
-                        ),
-                      ),
-                    ),
+                    child: _photoUrl != null && _photoUrl!.isNotEmpty
+                        ? ClipOval(
+                            child: CachedNetworkImage(
+                              imageUrl: _photoUrl!,
+                              width: 110,
+                              height: 110,
+                              fit: BoxFit.cover,
+                              placeholder: (_, __) => Center(
+                                child: Text(
+                                  initials,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 42,
+                                  ),
+                                ),
+                              ),
+                              errorWidget: (_, __, ___) => Center(
+                                child: Text(
+                                  initials,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 42,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          )
+                        : Center(
+                            child: Text(
+                              initials,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 42,
+                              ),
+                            ),
+                          ),
                   ),
                   GestureDetector(
                     onTap: _openEditProfile,
@@ -323,8 +364,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     _ProfileOption(
                       icon: Icons.logout,
-                      label: "Logout",
-                      onTap: _logout,
+                      label: _loggingOut ? "Signing out…" : "Logout",
+                      onTap: _loggingOut ? () {} : _logout,
+                      trailing: _loggingOut
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Color(0xFFE8843A),
+                              ),
+                            )
+                          : null,
                     ),
                     const SizedBox(height: 30),
                   ],
@@ -389,11 +440,13 @@ class _ProfileOption extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final Widget? trailing;
 
   const _ProfileOption({
     required this.icon,
     required this.label,
     required this.onTap,
+    this.trailing,
   });
 
   @override
@@ -419,10 +472,11 @@ class _ProfileOption extends StatelessWidget {
                 ),
               ),
             ),
-            const Icon(
-              Icons.chevron_right,
-              color: Colors.grey,
-            ),
+            trailing ??
+                const Icon(
+                  Icons.chevron_right,
+                  color: Colors.grey,
+                ),
           ],
         ),
       ),
