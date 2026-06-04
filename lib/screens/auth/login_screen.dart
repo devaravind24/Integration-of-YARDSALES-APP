@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/widgets/yard_sale_logo.dart';
+import '../../routes/app_routes.dart';
 import '../../services/auth_service.dart';
-import '../navigation/bottom_nav_screen.dart';
-import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -37,10 +37,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       await _authService.signIn(email, pass);
       if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const BottomNavScreen()),
-        );
+        context.goNamed(AppRoutes.nHome);
       }
     } catch (e) {
       _showSnack(e.toString());
@@ -99,7 +96,8 @@ class _LoginScreenState extends State<LoginScreen> {
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
-                  onPressed: () {},
+                  onPressed: () =>
+                      context.pushNamed(AppRoutes.nForgotPassword),
                   child: const Text(
                     'Forgot Password?',
                     style: TextStyle(
@@ -154,10 +152,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     style: TextStyle(color: Color(0xFF1B3A6B)),
                   ),
                   GestureDetector(
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const SignupScreen()),
-                    ),
+                    onTap: () => context.pushNamed(AppRoutes.nSignup),
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                       decoration: BoxDecoration(

@@ -1,6 +1,7 @@
 import 'package:csen268_final_project/routes/app_routes.dart';
 import 'package:csen268_final_project/services/auth_service.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 class ScheduleScreen extends StatefulWidget {
@@ -354,10 +355,12 @@ class _EventCardState extends State<_EventCard> {
                 ),
                 const SizedBox(height: 4),
                 GestureDetector(
-                  onTap: () => Navigator.pushNamed(
-                    context,
-                    AppRoutes.details,
-                    arguments: widget.event,
+                  onTap: () => context.pushNamed(
+                    AppRoutes.nDetails,
+                    pathParameters: {
+                      'id': (widget.event['id'] ?? '_').toString(),
+                    },
+                    extra: widget.event,
                   ),
                   child: Row(
                     children: [

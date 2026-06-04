@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../routes/app_routes.dart';
 import '../../services/auth_service.dart';
+import '../../services/notification_service.dart';
 import 'yard_sale_logo.dart';
 
 class CustomDrawer extends StatelessWidget {
   const CustomDrawer({super.key});
 
   Future<void> _logout(BuildContext context) async {
+    // Stop pushes to this device before signing out.
+    await NotificationService.instance.clearToken();
     await AuthService().signOut();
     if (context.mounted) {
-      Navigator.pushNamedAndRemoveUntil(
-        context,
-        AppRoutes.login,
-        (route) => false,
-      );
+      context.goNamed(AppRoutes.nLogin);
     }
   }
 
@@ -82,7 +82,7 @@ class CustomDrawer extends StatelessWidget {
                       icon: Icons.edit_outlined,
                       label: 'Edit Profile',
                       onTap: () =>
-                          Navigator.pushNamed(context, AppRoutes.profile),
+                          context.pushNamed(AppRoutes.nProfile),
                     ),
                     _DrawerItem(
                       icon: Icons.location_on_outlined,
@@ -93,33 +93,34 @@ class CustomDrawer extends StatelessWidget {
                       icon: Icons.bookmark_outline,
                       label: 'Saved',
                       onTap: () =>
-                          Navigator.pushNamed(context, AppRoutes.schedule),
+                          context.pushNamed(AppRoutes.nSchedule),
                     ),
                     _DrawerItem(
                         icon: Icons.tag, label: 'Updates', onTap: () {}),
                     _DrawerItem(
                         icon: Icons.email_outlined,
                         label: 'Notifications',
-                        onTap: () {}),
+                        onTap: () =>
+                            context.pushNamed(AppRoutes.nNotifications)),
                     _DrawerItem(
                       icon: Icons.chat_bubble_outline,
                       label: 'Chats',
                       onTap: () =>
-                          Navigator.pushNamed(context, AppRoutes.chatInboxScreen),
+                          context.pushNamed(AppRoutes.nChatInbox),
                     ),
                     // ── Settings ──────────────────────────────────
                     _DrawerItem(
                       icon: Icons.settings_outlined,
                       label: 'Settings',
                       onTap: () =>
-                          Navigator.pushNamed(context, AppRoutes.settings),
+                          context.pushNamed(AppRoutes.nSettings),
                     ),
 
                     // ── Help & Support ────────────────────────────
                     _DrawerItem(
                       icon: Icons.help_outline,
                       label: 'Help & Support',
-                      onTap: () => Navigator.pushNamed(context, AppRoutes.help),
+                      onTap: () => context.pushNamed(AppRoutes.nHelp),
                     ),
 
                     _DrawerItem(
@@ -137,7 +138,7 @@ class CustomDrawer extends StatelessWidget {
               child: GestureDetector(
                 onTap: () {
                   Navigator.pop(context);
-                  Navigator.pushNamed(context, AppRoutes.createListing);
+                  context.pushNamed(AppRoutes.nCreateListing);
                 },
                 child: Container(
                   padding: const EdgeInsets.all(12),

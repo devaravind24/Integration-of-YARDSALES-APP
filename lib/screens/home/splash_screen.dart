@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/widgets/yard_sale_logo.dart';
-import '../auth/login_screen.dart';
+import '../../routes/app_routes.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -24,12 +26,10 @@ class _SplashScreenState extends State<SplashScreen>
     _scaleAnim = CurvedAnimation(parent: _controller, curve: Curves.easeOutBack);
 
     Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-        );
-      }
+      if (!mounted) return;
+      // Send signed-in users straight to home; otherwise to login.
+      final loggedIn = FirebaseAuth.instance.currentUser != null;
+      context.goNamed(loggedIn ? AppRoutes.nHome : AppRoutes.nLogin);
     });
   }
 

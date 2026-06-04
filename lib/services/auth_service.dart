@@ -111,6 +111,17 @@ class AuthService {
   }
 }
 
+  /// Feature 2 — Forgot Password.
+  /// Sends a Firebase Auth password-reset email. Throws a friendly,
+  /// user-facing message on failure (reuses the existing `_friendly` map).
+  Future<void> sendPasswordResetEmail(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email.trim());
+    } on FirebaseAuthException catch (e) {
+      throw _friendly(e.code);
+    }
+  }
+
   Future<void> signOut() => _auth.signOut();
 
   String _friendly(String code) {

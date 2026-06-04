@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../routes/app_routes.dart';
 import '../../services/auth_service.dart';
@@ -88,11 +89,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (!mounted) return;
 
-    Navigator.pushNamedAndRemoveUntil(
-      context,
-      AppRoutes.login,
-      (route) => false,
-    );
+    context.goNamed(AppRoutes.nLogin);
   }
   
   @override
@@ -319,7 +316,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       icon: Icons.settings_outlined,
                       label: "Settings",
                       onTap: () =>
-                          Navigator.pushNamed(context, AppRoutes.settings),
+                          context.pushNamed(AppRoutes.nSettings),
                     
                     ),
 
@@ -333,7 +330,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       icon: Icons.help_outline,
                       label: "Help",
                        onTap: () =>
-                          Navigator.pushNamed(context, AppRoutes.help),
+                          context.pushNamed(AppRoutes.nHelp),
                     ),
 
                     _ProfileOption(

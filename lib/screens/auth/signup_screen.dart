@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../routes/app_routes.dart';
 import '../../services/auth_service.dart';
 
@@ -68,11 +69,8 @@ class _SignupScreenState extends State<SignupScreen> {
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          AppRoutes.login,
-          (route) => false,
-        );
+        Navigator.pop(context); // close the signup screen
+        context.goNamed(AppRoutes.nLogin);
       }
     } catch (e) {
       _showSnack(e.toString());
