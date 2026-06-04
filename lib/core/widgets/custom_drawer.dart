@@ -80,8 +80,7 @@ class CustomDrawer extends StatelessWidget {
                     _DrawerItem(
                       icon: Icons.edit_outlined,
                       label: 'Edit Profile',
-                      onTap: () =>
-                          context.pushNamed(AppRoutes.nProfile),
+                      onTap: () => context.pushNamed(AppRoutes.nProfile),
                     ),
                     _DrawerItem(
                       icon: Icons.location_on_outlined,
@@ -91,8 +90,7 @@ class CustomDrawer extends StatelessWidget {
                     _DrawerItem(
                       icon: Icons.bookmark_outline,
                       label: 'Saved',
-                      onTap: () =>
-                          context.pushNamed(AppRoutes.nSchedule),
+                      onTap: () => context.pushNamed(AppRoutes.nSchedule),
                     ),
                     _DrawerItem(
                         icon: Icons.tag, label: 'Updates', onTap: () {}),
@@ -104,15 +102,13 @@ class CustomDrawer extends StatelessWidget {
                     _DrawerItem(
                       icon: Icons.chat_bubble_outline,
                       label: 'Chats',
-                      onTap: () =>
-                          context.pushNamed(AppRoutes.nChatInbox),
+                      onTap: () => context.pushNamed(AppRoutes.nChatInbox),
                     ),
                     // ── Settings ──────────────────────────────────
                     _DrawerItem(
                       icon: Icons.settings_outlined,
                       label: 'Settings',
-                      onTap: () =>
-                          context.pushNamed(AppRoutes.nSettings),
+                      onTap: () => context.pushNamed(AppRoutes.nSettings),
                     ),
 
                     // ── Help & Support ────────────────────────────

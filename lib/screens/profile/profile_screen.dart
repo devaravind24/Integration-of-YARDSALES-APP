@@ -139,13 +139,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             color: Colors.grey.shade300,
                           ),
                         ),
-                        child: const Icon(
-                          Icons.chevron_left,
-                          size: 20,
-                          color: Colors.black54,
-                        ),
-                      ),
-                    ),
+                      )
+                    else
+                      const SizedBox(width: 48),
                     const Expanded(
                       child: Text(
                         'PROFILE',
