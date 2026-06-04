@@ -44,9 +44,17 @@ class _SaleDetailsScreenState extends State<SaleDetailsScreen> {
     return v;
   }
 
-  // Use freshly fetched URLs once available, fall back to whatever extra had.
-  List<String> get _images =>
-      _imagesFetched ? _fetchedImages : SaleService.imagesFromSale(sale);
+  // Sample images shown when a listing has no uploaded photos.
+  static const _demoImages = [
+    'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600&q=80', // laptop
+    'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&q=80',    // sofa
+  ];
+
+  // Use freshly fetched URLs once available; fall back to demo images.
+  List<String> get _images {
+    final urls = _imagesFetched ? _fetchedImages : SaleService.imagesFromSale(sale);
+    return urls.isNotEmpty ? urls : _demoImages;
+  }
 
   @override
   void initState() {
