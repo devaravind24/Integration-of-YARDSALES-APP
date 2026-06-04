@@ -35,6 +35,10 @@ import 'app_routes.dart';
 class AppRouter {
   AppRouter._();
 
+  /// Set to true while the signup screen is creating + signing out an account
+  /// so the auth redirect does not race it to /home.
+  static bool signingUp = false;
+
   static final _refresh = _AuthRefresh(FirebaseAuth.instance.authStateChanges());
 
   static final GoRouter router = GoRouter(
@@ -52,6 +56,9 @@ class AppRouter {
 
       // Let the splash screen run its own animation/redirect.
       if (onSplash) return null;
+
+      // Suppress all auth redirects while signup is in progress.
+      if (AppRouter.signingUp) return null;
 
       if (!loggedIn && !onAuthFlow) return AppRoutes.login;
       if (loggedIn && onAuthFlow) return AppRoutes.home;

@@ -11,11 +11,17 @@ class CustomDrawer extends StatelessWidget {
   const CustomDrawer({super.key});
 
   Future<void> _logout(BuildContext context) async {
-    Navigator.pop(context); // close the drawer first
-    await NotificationService.instance.clearToken();
-    await AuthService().signOut();
-    // currentUser is null by this point — safe to navigate explicitly
-    if (context.mounted) context.goNamed(AppRoutes.nLogin);
+    // Close drawer visual layout immediately
+    Navigator.pop(context);
+
+    try {
+      await NotificationService.instance.clearToken();
+
+      // As soon as this finishes, GoRouter will instantly kick the user back to Login
+      await AuthService().signOut();
+    } catch (e) {
+      debugPrint('Logout failed: $e');
+    }
   }
 
   @override

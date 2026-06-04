@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../routes/app_routes.dart';
+import '../../routes/app_router.dart';
 import '../../services/auth_service.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -53,6 +54,7 @@ class _SignupScreenState extends State<SignupScreen> {
     }
 
     setState(() => _isLoading = true);
+    AppRouter.signingUp = true;
     try {
       await _authService.signUp(
         email,
@@ -62,12 +64,19 @@ class _SignupScreenState extends State<SignupScreen> {
         phone: phone,
         role: _isBuyer ? 'buyer' : 'seller',
       );
+      await _authService.signOut();
+      AppRouter.signingUp = false;
       if (mounted) {
-        // Navigate straight to home — the user is now authenticated and the
-        // GoRouter auth redirect would send them there anyway.
-        context.goNamed(AppRoutes.nHome);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Account created! Please log in.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        context.goNamed(AppRoutes.nLogin);
       }
     } catch (e) {
+      AppRouter.signingUp = false;
       _showSnack(e.toString());
     } finally {
       if (mounted) setState(() => _isLoading = false);
