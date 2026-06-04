@@ -20,7 +20,14 @@ dependencies:
   google_maps_flutter: ^2.9.0
   font_awesome_flutter: ^10.7.0
   url_launcher: ^6.3.0
-  intl: ^0.19.0  
+  intl: ^0.19.0
+
+  # ── Added for new features ──────────────────────────────
+  go_router: ^14.6.2            # Feature 5: centralized navigation
+  share_plus: ^10.1.2           # Feature 6: share sale listings
+  cached_network_image: ^3.4.1  # Feature 3: cached image loading
+  firebase_messaging: ^16.0.0   # Feature 4: push notifications
+  flutter_local_notifications: ^18.0.1  # Feature 4: foreground notifications
 
 dev_dependencies:
   flutter_test:

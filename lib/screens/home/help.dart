@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'legal_screen.dart';
+import 'support_chat_screen.dart';
+
 class HelpSupportPage extends StatefulWidget {
   const HelpSupportPage({super.key});
 
@@ -162,7 +165,10 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
             icon: Icons.chat_bubble_outline,
             label: 'Live Chat',
             subtitle: 'Mon–Fri, 9 am – 5 pm PT',
-            onTap: () => _snack(context, 'Live chat coming soon!'),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SupportChatScreen()),
+            ),
           ),
           _ContactTile(
             icon: Icons.bug_report_outlined,
@@ -179,12 +185,30 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
           _ContactTile(
             icon: Icons.description_outlined,
             label: 'Terms of Service',
-            onTap: () => _snack(context, 'Terms of Service coming soon!'),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const LegalScreen(
+                  title: 'Terms of Service',
+                  lastUpdated: 'June 2026',
+                  sections: termsOfServiceSections,
+                ),
+              ),
+            ),
           ),
           _ContactTile(
             icon: Icons.privacy_tip_outlined,
             label: 'Privacy Policy',
-            onTap: () => _snack(context, 'Privacy Policy coming soon!'),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const LegalScreen(
+                  title: 'Privacy Policy',
+                  lastUpdated: 'June 2026',
+                  sections: privacyPolicySections,
+                ),
+              ),
+            ),
           ),
 
           const SizedBox(height: 32),

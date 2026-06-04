@@ -1,0 +1,104 @@
+rules_version = '2';
+
+// Yard Sale Treasure Map — Firestore security rules.
+//
+// Principles:
+//   * All reads/writes require an authenticated user.
+//   * Users can only mutate their own profile + favorites.
+//   * Sales are world-readable (it's a discovery app) but only the seller can
+//     create/edit/delete their own listing.
+//   * Chat docs + messages are restricted to their participants.
+//   * Notifications are private to the recipient; clients may create records
+//     (so in-app events work) but only the owner may mark them read/delete.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isSelf(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // ── users ────────────────────────────────────────────────
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      // A user may create/replace their own profile.
+      allow create: if isSelf(userId);
+      // Updates: owner only. (fcmTokens + favorites are written here.)
+      allow update: if isSelf(userId);
+      allow delete: if isSelf(userId);
+    }
+
+    // ── sales ────────────────────────────────────────────────
+    match /sales/{saleId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+                    && request.resource.data.sellerId == request.auth.uid;
+      allow update, delete: if isSignedIn()
+                    && resource.data.sellerId == request.auth.uid;
+    }
+
+    // ── chats ────────────────────────────────────────────────
+    match /chats/{chatId} {
+      function isParticipant() {
+        return isSignedIn()
+          && request.auth.uid in resource.data.participants;
+      }
+      function willBeParticipant() {
+        return isSignedIn()
+          && request.auth.uid in request.resource.data.participants;
+      }
+
+      allow read: if isParticipant();
+      allow create: if willBeParticipant();
+      // Either participant may update metadata (lastMessage, unreadCount…).
+      allow update: if isParticipant();
+      allow delete: if false;
+
+      // messages subcollection
+      match /messages/{messageId} {
+        function parentParticipants() {
+          return get(/databases/$(database)/documents/chats/$(chatId))
+                 .data.participants;
+        }
+        allow read: if isSignedIn()
+                    && request.auth.uid in parentParticipants();
+        allow create: if isSignedIn()
+                    && request.resource.data.senderId == request.auth.uid
+                    && request.auth.uid in parentParticipants();
+        // Allow updating read receipts (readBy) by any participant.
+        allow update: if isSignedIn()
+                    && request.auth.uid in parentParticipants();
+        allow delete: if false;
+      }
+    }
+
+    // ── support_chats ────────────────────────────────────────
+    // A user owns the thread at support_chats/{uid}. They can read and
+    // write only their own messages. Support staff use the Admin SDK,
+    // which bypasses these rules.
+    match /support_chats/{uid} {
+      allow read, write: if isSelf(uid);
+      match /messages/{messageId} {
+        allow read, write: if isSelf(uid);
+      }
+    }
+
+    // ── notifications ────────────────────────────────────────
+    match /notifications/{notifId} {
+      // Recipient can read their own notifications.
+      allow read: if isSignedIn()
+                  && resource.data.userId == request.auth.uid;
+      // Any signed-in user may create a notification record (e.g. a buyer
+      // creating an "interest" notification addressed to a seller). The
+      // Cloud Function uses the Admin SDK and bypasses these rules.
+      allow create: if isSignedIn()
+                  && request.resource.data.keys().hasAll(
+                       ['userId', 'title', 'body', 'read']);
+      // Only the recipient can mark read / delete.
+      allow update, delete: if isSignedIn()
+                  && resource.data.userId == request.auth.uid;
+    }
+  }
+}

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../core/widgets/custom_drawer.dart';
@@ -155,7 +156,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                       icon: const Icon(Icons.account_circle_outlined,
                           color: Colors.white),
                       onPressed: () =>
-                          Navigator.pushNamed(context, AppRoutes.profile),
+                          context.pushNamed(AppRoutes.nProfile),
                     ),
                   ],
                 ),
@@ -266,7 +267,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                   _IconCircle(
                     icon: Icons.bookmark_border,
                     onTap: () =>
-                        Navigator.pushNamed(context, AppRoutes.schedule),
+                        context.pushNamed(AppRoutes.nSchedule),
                   ),
                 ],
               ),

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../services/auth_service.dart';
+import '../../services/notification_service.dart';
 import '../../routes/app_routes.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -54,7 +56,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 label: name.isNotEmpty ? name : 'Your Account',
                 subtitle: email,
                 trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-                onTap: () => Navigator.pushNamed(context, AppRoutes.profile),
+                onTap: () => context.pushNamed(AppRoutes.nProfile),
               );
             },
           ),
@@ -216,11 +218,10 @@ class _SettingsPageState extends State<SettingsPage> {
             style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
             onPressed: () async {
               Navigator.pop(context);
+              await NotificationService.instance.clearToken();
               await AuthService().signOut();
               if (context.mounted) {
-                Navigator.pushNamedAndRemoveUntil(
-                  context, AppRoutes.login, (r) => false,
-                );
+                context.goNamed(AppRoutes.nLogin);
               }
             },
             child: const Text('Sign Out'),

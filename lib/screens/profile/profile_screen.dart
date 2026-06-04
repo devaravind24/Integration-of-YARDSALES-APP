@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../routes/app_routes.dart';
 import '../../services/auth_service.dart';
@@ -88,18 +89,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (!mounted) return;
 
-    Navigator.pushNamedAndRemoveUntil(
-      context,
-      AppRoutes.login,
-      (route) => false,
-    );
+    context.goNamed(AppRoutes.nLogin);
   }
-  
+
   @override
   Widget build(BuildContext context) {
-    final initials = _displayName.isNotEmpty
-        ? _displayName.trim()[0].toUpperCase()
-        : "?";
+    final initials =
+        _displayName.isNotEmpty ? _displayName.trim()[0].toUpperCase() : "?";
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -112,23 +108,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                 child: Row(
                   children: [
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: Colors.grey.shade300,
+                    // Show back button ONLY when Profile was pushed onto the
+                    // stack (e.g. from the Home page's profile icon). When
+                    // Profile is the bottom-nav tab, canPop() is false and
+                    // we render a spacer so the title stays centered.
+                    if (context.canPop())
+                      IconButton(
+                        onPressed: () => context.pop(),
+                        icon: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.grey.shade300),
+                          ),
+                          child: const Icon(
+                            Icons.chevron_left,
+                            size: 20,
+                            color: Colors.black54,
                           ),
                         ),
-                        child: const Icon(
-                          Icons.chevron_left,
-                          size: 20,
-                          color: Colors.black54,
-                        ),
-                      ),
-                    ),
+                      )
+                    else
+                      const SizedBox(width: 48),
                     const Expanded(
                       child: Text(
                         'PROFILE',
@@ -176,7 +177,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                   ),
-
                   GestureDetector(
                     onTap: _openEditProfile,
                     child: Container(
@@ -239,9 +239,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-
                     const SizedBox(height: 6),
-
                     const Text(
                       'Both sellers and shoppers can add sales to the map.\n'
                       'Sellers create listings with photos.\n'
@@ -252,9 +250,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         height: 1.5,
                       ),
                     ),
-
                     const SizedBox(height: 16),
-
                     Row(
                       children: [
                         Expanded(
@@ -282,9 +278,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ],
                     ),
-
                     const SizedBox(height: 20),
-
                     SizedBox(
                       width: double.infinity,
                       height: 52,
@@ -306,42 +300,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                     ),
-
                     const SizedBox(height: 30),
-
                     _ProfileOption(
                       icon: Icons.person_outline,
                       label: "Personal Information",
                       onTap: _openEditProfile,
                     ),
-
                     _ProfileOption(
                       icon: Icons.settings_outlined,
                       label: "Settings",
-                      onTap: () =>
-                          Navigator.pushNamed(context, AppRoutes.settings),
-                    
+                      onTap: () => context.pushNamed(AppRoutes.nSettings),
                     ),
-
                     _ProfileOption(
                       icon: Icons.notifications_outlined,
                       label: "Notifications",
                       onTap: () {},
                     ),
-
                     _ProfileOption(
                       icon: Icons.help_outline,
                       label: "Help",
-                       onTap: () =>
-                          Navigator.pushNamed(context, AppRoutes.help),
+                      onTap: () => context.pushNamed(AppRoutes.nHelp),
                     ),
-
                     _ProfileOption(
                       icon: Icons.logout,
                       label: "Logout",
                       onTap: _logout,
                     ),
-
                     const SizedBox(height: 30),
                   ],
                 ),
@@ -378,8 +362,7 @@ class _RoleToggle extends StatelessWidget {
           borderRadius: BorderRadius.circular(30),
           color: selected ? Colors.white : Colors.grey.shade100,
           border: Border.all(
-            color:
-                selected ? Colors.orange.shade300 : Colors.grey.shade300,
+            color: selected ? Colors.orange.shade300 : Colors.grey.shade300,
           ),
           boxShadow: selected
               ? [

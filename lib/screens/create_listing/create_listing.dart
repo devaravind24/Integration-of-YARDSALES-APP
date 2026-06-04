@@ -1,9 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+
+import '../../services/sale_service.dart';
 
 class CreateListingScreen extends StatefulWidget {
   const CreateListingScreen({super.key});
@@ -150,22 +150,19 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     }
     setState(() => _isSubmitting = true);
     try {
-      final uid = FirebaseAuth.instance.currentUser?.uid ?? 'anonymous';
-      await FirebaseFirestore.instance.collection('sales').add({
-        'title':       _titleController.text.trim(),
-        'description': _descriptionController.text.trim(),
-        'tags':        _tagsController.text.trim(),
-        'datetime':    '${_dateController.text.trim()} ${_timeController.text.trim()}'.trim(),
-        'date':        _dateController.text.trim(),
-        'starttime':   _timeController.text.trim(),
-        'address':     _locationController.text.trim(),
-        'price':       _priceController.text.trim(),
-        'condition':   _conditionController.text.trim(),
-        'distance':    'Nearby',
-        'sellerId':    uid,
-        'hasImage':    _pickedImage != null,
-        'createdAt':   FieldValue.serverTimestamp(),
-      });
+      // Feature 3 fix: delegate to SaleService, which uploads the picked
+      // image to Firebase Storage and persists `imageUrls`/`imageUrl`.
+      await SaleService().createListing(
+        title: _titleController.text,
+        description: _descriptionController.text,
+        tags: _tagsController.text,
+        date: _dateController.text,
+        startTime: _timeController.text,
+        address: _locationController.text,
+        price: _priceController.text,
+        condition: _conditionController.text,
+        images: _pickedImage != null ? [_pickedImage!] : const [],
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

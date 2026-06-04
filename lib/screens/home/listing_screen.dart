@@ -2,6 +2,7 @@ import 'dart:async';
 import '../../core/widgets/filter_data.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../core/widgets/filter_modal.dart';
@@ -373,10 +374,12 @@ class _ListingScreenState extends State<ListingScreen> {
                               sale: sale,
                               isFavorite: isFav,
                               onFavorite: () => _toggleFavorite(saleId),
-                              onTap: () => Navigator.pushNamed(
-                                context,
-                                AppRoutes.details,
-                                arguments: sale,
+                              onTap: () => context.pushNamed(
+                                AppRoutes.nDetails,
+                                pathParameters: {
+                                  'id': saleId.isEmpty ? '_' : saleId,
+                                },
+                                extra: sale,
                               ),
                             );
                           },

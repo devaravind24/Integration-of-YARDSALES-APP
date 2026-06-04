@@ -1,0 +1,29 @@
+rules_version = '2';
+
+// Storage rules for uploaded images.
+//   * sale_images/{saleId}/...  — any signed-in user may upload (the seller
+//     creating a listing); everyone signed-in may read.
+//   * chat_images/{chatId}/...  — any signed-in user may read/write (tighten
+//     to participants if you encode uids into the path).
+// Uploads are capped at 8 MB and must be images.
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isImageUnder8MB() {
+      return request.resource.size < 8 * 1024 * 1024
+             && request.resource.contentType.matches('image/.*');
+    }
+
+    match /sale_images/{saleId}/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && isImageUnder8MB();
+    }
+
+    match /chat_images/{chatId}/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && isImageUnder8MB();
+    }
+  }
+}
