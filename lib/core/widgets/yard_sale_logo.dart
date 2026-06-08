@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 class YardSaleLogo extends StatelessWidget {
   final double size;
   final bool showWordmark;
@@ -8,7 +9,11 @@ class YardSaleLogo extends StatelessWidget {
   const YardSaleLogo({
     super.key,
     this.size = 80,
-    this.showWordmark = true,
+    // The logo image (assets/logo.png) already contains the "YARDSALE"
+    // wordmark, so the separate text below is off by default to avoid
+    // printing "YARDSALE" twice. The fallback icon logo has no text, so
+    // callers can still opt in with showWordmark: true if needed.
+    this.showWordmark = false,
     this.wordmarkSize = 22,
     this.gap = 6,
   });
