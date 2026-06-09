@@ -98,12 +98,17 @@ class NotificationService {
 
   /// Remove this device's token on logout so the user stops receiving pushes.
   Future<void> clearToken() async {
-    final uid = _auth.currentUser?.uid;
-    final token = await _fcm.getToken();
-    if (uid != null && token != null) {
-      await _db.collection('users').doc(uid).set({
-        'fcmTokens': FieldValue.arrayRemove([token]),
-      }, SetOptions(merge: true));
+    try {
+      final uid = _auth.currentUser?.uid;
+      final token = await _fcm.getToken();
+      if (uid != null && token != null) {
+        await _db.collection('users').doc(uid).set({
+          'fcmTokens': FieldValue.arrayRemove([token]),
+        }, SetOptions(merge: true));
+      }
+    } catch (e) {
+      // APNs token may not be available on iOS simulator — safe to ignore.
+      debugPrint('FCM token clear skipped: $e');
     }
   }
 

@@ -172,7 +172,8 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
         Navigator.pop(context);
       }
     } catch (e) {
-      _showSnack('Failed to post listing. Please try again.');
+      debugPrint('createListing error: $e');
+      _showSnack('Failed to post listing: $e');
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }

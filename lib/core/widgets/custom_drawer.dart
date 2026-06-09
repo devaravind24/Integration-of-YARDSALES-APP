@@ -11,17 +11,9 @@ class CustomDrawer extends StatelessWidget {
   const CustomDrawer({super.key});
 
   Future<void> _logout(BuildContext context) async {
-    // Close drawer visual layout immediately
     Navigator.pop(context);
-
-    try {
-      await NotificationService.instance.clearToken();
-
-      // As soon as this finishes, GoRouter will instantly kick the user back to Login
-      await AuthService().signOut();
-    } catch (e) {
-      debugPrint('Logout failed: $e');
-    }
+    await NotificationService.instance.clearToken(); // errors are swallowed inside
+    await AuthService().signOut();
   }
 
   @override
@@ -99,8 +91,6 @@ class CustomDrawer extends StatelessWidget {
                       onTap: () => context.pushNamed(AppRoutes.nSchedule),
                     ),
                     _DrawerItem(
-                        icon: Icons.tag, label: 'Updates', onTap: () {}),
-                    _DrawerItem(
                         icon: Icons.email_outlined,
                         label: 'Notifications',
                         onTap: () =>
@@ -127,7 +117,7 @@ class CustomDrawer extends StatelessWidget {
                     _DrawerItem(
                       icon: Icons.logout,
                       label: 'Logout',
-                      onTap: () => context.pushNamed(AppRoutes.nLogin),
+                      onTap: () => _logout(context),
                       color: Colors.red,
                     ),
                   ],

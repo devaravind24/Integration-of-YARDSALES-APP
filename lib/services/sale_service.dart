@@ -69,14 +69,19 @@ class SaleService {
   }) async {
     final List<String> urls = [];
     for (var i = 0; i < images.length; i++) {
-      final ref = _storage.ref(
-        'sale_images/$saleId/${DateTime.now().millisecondsSinceEpoch}_$i.jpg',
-      );
-      final task = await ref.putFile(
-        images[i],
-        SettableMetadata(contentType: 'image/jpeg'),
-      );
-      urls.add(await task.ref.getDownloadURL());
+      try {
+        final ref = _storage.ref(
+          'sale_images/$saleId/${DateTime.now().millisecondsSinceEpoch}_$i.jpg',
+        );
+        final task = await ref.putFile(
+          images[i],
+          SettableMetadata(contentType: 'image/jpeg'),
+        );
+        urls.add(await task.ref.getDownloadURL());
+      } catch (e) {
+        // Upload failed for this image — listing still saves without it.
+        print('Image $i upload failed: $e');
+      }
     }
     return urls;
   }
